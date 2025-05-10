@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Chat</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="chat-container">
+            <aside class="sidebar">
+                <div id="user-profile-header" class="user-profile-header">
+                    <img src="../../assets/pfp_placeholder.png" alt="User Avatar" class="avatar-small" id="user-avatar-sidebar">
+                    <span id="username-sidebar">Loading...</span>
+                </div>
+                <div class="sidebar-header">
+                    <h2>Channels</h2>
+                </div>
+                <ul class="channel-list"></ul>
+            </aside>
+            <main class="chat-area">
+                <header class="chat-header">
+                    <h3>#general</h3>
+                </header>
+                <div class="message-list"></div>
+                <footer class="chat-input-area">
+                    <input type="text" placeholder="Type a message in #general..." class="message-input">
+                    <button class="send-button">Send</button>
+                </footer>
+            </main>
+        </div>
+        <script type="module" src="renderer.mjs"></script>
+    </body>
+</html>
