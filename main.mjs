@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import Store from "electron-store";
 import path from "path";
 import { createAuthWindow } from "./windows/auth/main.mjs";
+import { uploadFile, uploadHashedImage } from "./lib/storage.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -220,6 +221,18 @@ ipcMain.handle("leave-chat-room", async (_event, roomId) => {
     return { success: false, error: "Socket not initialized or roomId missing" };
 });
 
+ipcMain.handle("upload-image", async (data, upsert) => {
+    const accessToken = store.get("userData.access_token");
+    const { data: response, error } = await uploadHashedImage({
+        data,
+        accessToken,
+        upsert,
+    });
+
+    if (error) return { success: false, error };
+    return { success: true, response };
+});
+
 function checkStoredTokenValidity() {
     const userData = store.get("userData");
     const currentTime = Math.floor(Date.now() / 1000);
@@ -243,14 +256,15 @@ async function initApp() {
             messageSocket.socket?.close(); // Clean up existing socket if any
             messageSocket = null;
         }
-        return { isLoggedIn: false }
+        return { isLoggedIn: false };
     }
 
     console.log("Token valid, proceeding with app initialization.");
 
     // Initialize MessageSocket if we have an access token
     if (userData && userData.access_token) {
-        if (messageSocket) { // Close existing socket before creating a new one
+        if (messageSocket) {
+            // Close existing socket before creating a new one
             messageSocket.socket?.close();
         }
         messageSocket = new MessageSocket(userData.access_token);

@@ -42,4 +42,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // This specific IPC call 'login-successful' might not be needed anymore with the new auth flow
     // as token detection and chat window opening is handled in main.mjs after external auth.
     // loginSuccessful: () => ipcRenderer.invoke('login-successful'),
+
+    uploadImage: (data, upsert) =>
+        ipcRenderer.invoke("upload-file", data, upsert),
 });
