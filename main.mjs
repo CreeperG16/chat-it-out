@@ -2,7 +2,7 @@ import { config } from "dotenv";
 config();
 
 import { getChannels, getMessages, getProfiles, postMessage } from "./lib/api.mjs";
-import { MessageSocket } from "./lib/socket.mjs"; // Added import
+import { MessageSocket } from "./lib/socket.mjs";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "url";
 import Store from "electron-store";
@@ -15,7 +15,7 @@ const __dirname = path.dirname(__filename);
 const store = new Store();
 console.log("Store path:", store.path); // Useful for debugging
 
-let messageSocket; // Added for WebSocket
+let messageSocket;
 let profilesMap = new Map();
 let mainWindow, loginWindow, chatWindow;
 
@@ -42,7 +42,7 @@ function createWindow(htmlPath, width = 800, height = 600) {
 }
 
 function createMainWindow() {
-    // The main window will now initially load the local login trigger page.
+    // The main window will initially load the local login trigger page.
     mainWindow = createWindow(path.join(__dirname, "windows/login/index.html"));
     mainWindow.on("closed", () => {
         mainWindow = null;
@@ -102,7 +102,7 @@ ipcMain.handle("get-channels", async () => {
     }
 });
 
-ipcMain.handle("get-messages-for-channel", async (event, channelId) => {
+ipcMain.handle("get-messages-for-channel", async (_ev, channelId) => {
     const userData = store.get("userData");
 
     if (!userData || !userData.access_token) {
@@ -187,7 +187,7 @@ ipcMain.handle("open-external-login", async () => {
 
     store.set("userData", userData);
 
-    await initApp(); // initApp will now handle socket creation
+    await initApp();
     openChatWindow();
 
     return { success: true };
