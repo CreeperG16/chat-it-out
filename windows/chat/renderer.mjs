@@ -112,13 +112,38 @@ function renderMessageItem(message) {
 
     const messageContentDiv = document.createElement("div");
     messageContentDiv.classList.add("message-content");
-    const contentParagraph = document.createElement("p");
-    contentParagraph.textContent = message.content || "";
-    messageContentDiv.appendChild(contentParagraph);
+
+    if (message.is_image_content) {
+        const imageElement = document.createElement("img");
+        imageElement.src = message.content;
+        imageElement.alt = "User uploaded image"; // Or a more descriptive alt text if available
+        imageElement.classList.add("message-image"); // Add a class for styling
+        imageElement.addEventListener("click", () => openImageModal(message.content));
+        messageContentDiv.appendChild(imageElement);
+    } else {
+        const contentParagraph = document.createElement("p");
+        contentParagraph.textContent = message.content || "";
+        messageContentDiv.appendChild(contentParagraph);
+    }
+
     messageBodyDiv.appendChild(messageContentDiv);
 
     messageDiv.appendChild(messageBodyDiv);
     messageListElement.appendChild(messageDiv);
+}
+
+// Function to open the image modal
+function openImageModal(imageUrl) {
+    const modal = document.getElementById("image-modal");
+    const modalImage = document.getElementById("expanded-image");
+    modalImage.src = imageUrl;
+    modal.style.display = "flex"; // Use flex to utilize centering styles
+}
+
+// Function to close the image modal
+function closeImageModal() {
+    const modal = document.getElementById("image-modal");
+    modal.style.display = "none";
 }
 
 async function loadAndDisplayMessages(channelId) {
@@ -382,5 +407,21 @@ document.addEventListener("DOMContentLoaded", async () => {
                 sendMessage();
             }
         });
+    }
+
+    const modal = document.getElementById("image-modal");
+    const closeModalButton = document.querySelector(".close-modal-button");
+
+    if (modal) {
+        modal.addEventListener("click", (event) => {
+            // If the click is on the overlay itself (not the image), close the modal
+            if (event.target === modal) {
+                closeImageModal();
+            }
+        });
+    }
+
+    if (closeModalButton) {
+        closeModalButton.addEventListener("click", closeImageModal);
     }
 });
