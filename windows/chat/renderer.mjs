@@ -174,6 +174,18 @@ function renderMessageItem(message) {
 
             repliedMessageDiv.appendChild(repliedAuthorSpan);
             repliedMessageDiv.appendChild(repliedContentSpan);
+            // Add click listener to scroll to the original message
+            repliedMessageDiv.addEventListener("click", () => {
+                const originalMessageElement = document.querySelector(`[data-message-id="${message.replied_message_id}"]`);
+                if (originalMessageElement) {
+                    originalMessageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                    // Optionally, add a temporary highlight to the scrolled-to message
+                    originalMessageElement.classList.add("highlighted-message");
+                    setTimeout(() => {
+                        originalMessageElement.classList.remove("highlighted-message");
+                    }, 1500); // Highlight for 1.5 seconds
+                }
+            });
 
             const replyLine = document.createElement("div");
             replyLine.classList.add("reply-line");

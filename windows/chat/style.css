@@ -258,6 +258,11 @@ body {
   position: relative; /* For the reply line positioning */
   overflow: hidden; /* To ensure content respects padding and border-radius */
   border-left: 2px solid rgba(0, 122, 255, 0.5); /* Reply indicator line */
+  cursor: pointer; /* Indicate it's clickable */
+}
+
+.replied-message-preview:hover {
+  background-color: rgba(255, 255, 255, 0.06); /* Slightly lighten on hover */
 }
 
 .replied-message-author {
@@ -271,6 +276,14 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 300px; /* Adjust as needed */
+}
+
+/* Highlight for scrolled-to message */
+.highlighted-message {
+  background-color: rgba(0, 122, 255, 0.15) !important; /* Use !important to override other backgrounds if necessary */
+  transition: background-color 0.3s ease-in-out, padding 0.3s ease-in-out;
+  padding: 5px; /* Add padding */
+  border-radius: 4px; /* Optional: Add border-radius to match other elements */
 }
 
 /* Reply Preview Bar */
