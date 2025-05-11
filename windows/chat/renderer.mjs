@@ -564,4 +564,50 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (cancelImageUploadButton) {
         cancelImageUploadButton.addEventListener("click", hideImagePreview);
     }
+
+    // Listen for paste events for image uploading
+    document.addEventListener("paste", async (event) => {
+        if (uploadedImageUrl) {
+            // If an image is already in preview, don't try to paste another one on top.
+            // The paste event might be on the messageInput, which is fine for text.
+            if (event.target === messageInput) return;
+        }
+
+        const items = (event.clipboardData || event.originalEvent.clipboardData)?.items;
+        if (!items) return;
+
+        let imageFile = null;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                imageFile = items[i].getAsFile();
+                break;
+            }
+        }
+
+        if (imageFile) {
+            event.preventDefault(); // Prevent default paste action if we're handling an image
+            console.log(`Pasted image: ${imageFile.name}, type: ${imageFile.type}, size: ${imageFile.size}`);
+            
+            // Show visual feedback (optional, similar to file input)
+            const uploadButton = document.querySelector(".upload-button");
+            if (uploadButton) uploadButton.classList.add("uploading");
+
+            const result = await uploadImageFile(imageFile);
+
+            if (uploadButton) uploadButton.classList.remove("uploading");
+
+            if (result.error) {
+                console.error("Pasted image upload failed:", result.error);
+                alert(`Pasted image upload failed: ${JSON.stringify(result.error)}`);
+            } else {
+                console.log("Pasted image upload successful, showing preview:", result.data);
+                if (result.data?.url) {
+                    showImagePreview(result.data.url);
+                } else {
+                    console.error("Pasted image upload result did not contain a valid image URL.", result.data);
+                    alert("Pasted image upload succeeded, but no image URL was returned.");
+                }
+            }
+        }
+    });
 });
