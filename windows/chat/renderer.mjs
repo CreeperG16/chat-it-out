@@ -195,6 +195,34 @@ async function loadAndDisplayMessages(channelId) {
     }
 }
 
+async function uploadImageFile(file) {
+    if (!file) {
+        console.error("No file provided for upload.");
+        return { data: null, error: "No file provided." };
+    }
+
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        // We'll need to define 'uploadImage' in preload.mjs and handle it in main.mjs
+        const result = await window.electronAPI.uploadImage({
+            buffer: arrayBuffer, // ArrayBuffer is serializable by Electron's IPC
+            type: file.type,
+            name: file.name,
+        });
+
+        if (result && result.error) {
+            console.error("Error uploading image:", result.error);
+            return { data: null, error: result.error };
+        }
+
+        console.log("Image uploaded successfully:", result.data);
+        return { data: result.data, error: null };
+    } catch (error) {
+        console.error("Exception during image upload:", error);
+        return { data: null, error: error.message || "Exception during upload." };
+    }
+}
+
 function renderChannelItem(channel, listElement) {
     const listItem = document.createElement("li");
     listItem.classList.add("channel-item");
@@ -423,5 +451,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (closeModalButton) {
         closeModalButton.addEventListener("click", closeImageModal);
+    }
+
+    // Temporary: Event listener for image upload input
+    const imageUploadInput = document.getElementById("image-upload-input");
+    if (imageUploadInput) {
+        imageUploadInput.addEventListener("change", async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                console.log(`Selected file: ${file.name}, type: ${file.type}, size: ${file.size}`);
+                const result = await uploadImageFile(file);
+                if (result.error) {
+                    console.error("Upload failed:", result.error);
+                    alert(`Image upload failed: ${JSON.stringify(result.error)}`); // Temporary feedback
+                } else {
+                    console.log("Upload successful:", result.data);
+                    alert(`Image uploaded successfully! URL: "${result.data.url}"`); // Temporary feedback
+                    // TODO: Handle successful upload, e.g., send image message
+                }
+                imageUploadInput.value = ""; // Reset file input
+            }
+        });
     }
 });

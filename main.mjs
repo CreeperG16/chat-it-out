@@ -221,16 +221,30 @@ ipcMain.handle("leave-chat-room", async (_event, roomId) => {
     return { success: false, error: "Socket not initialized or roomId missing" };
 });
 
-ipcMain.handle("upload-image", async (data, upsert) => {
+// Modified to accept a single object with image details
+ipcMain.handle("upload-image", async (_event, imageDetails) => {
     const accessToken = store.get("userData.access_token");
+    if (!accessToken) {
+        return { success: false, error: "User not authenticated" };
+    }
+
+    // The 'buffer' from renderer is an ArrayBuffer, convert to Node.js Buffer
+    const nodeBuffer = Buffer.from(imageDetails.buffer);
+
     const { data: response, error } = await uploadHashedImage({
-        data,
+        fileBuffer: nodeBuffer, // Pass the Node.js Buffer
+        mimeType: imageDetails.type, // Pass the MIME type from renderer
         accessToken,
-        upsert,
+        upsert: imageDetails.upsert !== undefined ? imageDetails.upsert : false, // Handle optional upsert
+        // name: imageDetails.name // name is used for storagePath generation inside uploadHashedImage
     });
 
-    if (error) return { success: false, error };
-    return { success: true, response };
+    if (error) {
+        console.error("Main: Error uploading image:", error);
+        return { success: false, error };
+    }
+    console.log("Main: Image uploaded successfully:", response);
+    return { success: true, data: response }; // Changed to return 'data'
 });
 
 function checkStoredTokenValidity() {

@@ -43,6 +43,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // as token detection and chat window opening is handled in main.mjs after external auth.
     // loginSuccessful: () => ipcRenderer.invoke('login-successful'),
 
-    uploadImage: (data, upsert) =>
-        ipcRenderer.invoke("upload-file", data, upsert),
+    uploadImage: (imageDetails) => // Modified to accept a single object
+        ipcRenderer.invoke("upload-image", imageDetails), // Pass the object directly
 });
