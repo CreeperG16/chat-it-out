@@ -10,6 +10,45 @@ let hiddenChannelsToggleElement = null; // To store the toggle element
 const messageListElement = document.querySelector(".message-list"); // Get message list element
 let profilesMap = new Map(); // To store user profiles
 let currentChannelId = null; // Added to keep track of the current channel
+let currentChannelMessagesMap = new Map(); // To store messages of the current channel by ID
+let replyingToMessage = null; // To store the message object being replied to
+
+// Function to update the reply preview bar
+function updateReplyPreviewBar() {
+    const replyPreviewBar = document.getElementById("reply-preview-bar");
+    const chatInputArea = document.querySelector(".chat-input-area");
+
+    if (!replyPreviewBar || !chatInputArea) return;
+
+    if (replyingToMessage) {
+        const authorProfile = profilesMap.get(replyingToMessage.author_id);
+        const authorName = (authorProfile && authorProfile.username) || "Unknown User";
+        let contentSnippet = replyingToMessage.content || "";
+        if (replyingToMessage.is_image_content) {
+            contentSnippet = "Image";
+        }
+        contentSnippet = contentSnippet.substring(0, 100) + (contentSnippet.length > 100 ? "..." : "");
+
+        replyPreviewBar.innerHTML = `
+            <div class="reply-preview-content">
+                <span class="reply-preview-label">Replying to ${authorName}:</span>
+                <span class="reply-preview-snippet">${contentSnippet}</span>
+            </div>
+            <button class="cancel-reply-button" id="cancel-reply-btn" aria-label="Cancel reply">&times;</button>
+        `;
+        replyPreviewBar.style.display = "flex";
+        chatInputArea.style.paddingTop = "5px"; // Adjust padding to make space if needed
+
+        document.getElementById("cancel-reply-btn").addEventListener("click", () => {
+            replyingToMessage = null;
+            updateReplyPreviewBar();
+        });
+    } else {
+        replyPreviewBar.innerHTML = "";
+        replyPreviewBar.style.display = "none";
+        chatInputArea.style.paddingTop = "10px"; // Reset padding
+    }
+}
 
 async function loadAllProfiles() {
     try {
@@ -85,6 +124,21 @@ function renderMessageItem(message) {
 
     const messageDiv = document.createElement("div");
     messageDiv.classList.add("message");
+    messageDiv.dataset.messageId = message.id; // Store message ID for easy access
+
+    // Add reply button (initially hidden, shown on hover)
+    const replyButton = document.createElement("button");
+    replyButton.classList.add("reply-button");
+    replyButton.innerHTML = "&#x21A9;"; // Reply arrow symbol
+    replyButton.setAttribute("aria-label", "Reply to this message");
+    replyButton.title = "Reply";
+    replyButton.addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent message click event if any
+        replyingToMessage = currentChannelMessagesMap.get(message.id);
+        updateReplyPreviewBar();
+        document.querySelector(".message-input").focus(); // Focus input
+    });
+    messageDiv.appendChild(replyButton);
 
     const avatarImg = document.createElement("img");
     avatarImg.classList.add("avatar");
@@ -94,6 +148,52 @@ function renderMessageItem(message) {
 
     const messageBodyDiv = document.createElement("div");
     messageBodyDiv.classList.add("message-body");
+
+    // Handle replied messages
+    if (message.replied_message_id) {
+        const originalMessage = currentChannelMessagesMap.get(message.replied_message_id);
+
+        if (originalMessage) {
+            const repliedMessageDiv = document.createElement("div");
+            repliedMessageDiv.classList.add("replied-message-preview");
+
+            const originalAuthorProfile = profilesMap.get(originalMessage.author_id);
+            const originalAuthorName = (originalAuthorProfile && originalAuthorProfile.username) || "Unknown User";
+
+            const repliedAuthorSpan = document.createElement("span");
+            repliedAuthorSpan.classList.add("replied-message-author");
+            repliedAuthorSpan.textContent = originalAuthorName;
+
+            const repliedContentSpan = document.createElement("span");
+            repliedContentSpan.classList.add("replied-message-content-snippet");
+            let contentSnippet = originalMessage.content || "";
+            if (originalMessage.is_image_content) {
+                contentSnippet = "Image"; // Placeholder for image replies
+            }
+            repliedContentSpan.textContent = contentSnippet.substring(0, 50) + (contentSnippet.length > 50 ? "..." : "");
+
+            repliedMessageDiv.appendChild(repliedAuthorSpan);
+            repliedMessageDiv.appendChild(repliedContentSpan);
+            // Add click listener to scroll to the original message
+            repliedMessageDiv.addEventListener("click", () => {
+                const originalMessageElement = document.querySelector(`[data-message-id="${message.replied_message_id}"]`);
+                if (originalMessageElement) {
+                    originalMessageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                    // Optionally, add a temporary highlight to the scrolled-to message
+                    originalMessageElement.classList.add("highlighted-message");
+                    setTimeout(() => {
+                        originalMessageElement.classList.remove("highlighted-message");
+                    }, 1500); // Highlight for 1.5 seconds
+                }
+            });
+
+            const replyLine = document.createElement("div");
+            replyLine.classList.add("reply-line");
+            repliedMessageDiv.prepend(replyLine);
+
+            messageBodyDiv.appendChild(repliedMessageDiv);
+        }
+    }
 
     const messageHeaderDiv = document.createElement("div");
     messageHeaderDiv.classList.add("message-header");
@@ -148,6 +248,7 @@ async function loadAndDisplayMessages(channelId) {
         const { data: messages, error } = await window.electronAPI.getMessagesForChannel(channelId);
 
         messageListElement.innerHTML = ""; // Clear loading message
+        currentChannelMessagesMap.clear(); // Clear previous channel's messages
 
         if (error) {
             console.error(`Error fetching messages for channel ${channelId}:`, error);
@@ -158,6 +259,7 @@ async function loadAndDisplayMessages(channelId) {
         if (messages && messages.length > 0) {
             console.log("Messages received:", messages);
             messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            messages.forEach(msg => currentChannelMessagesMap.set(msg.id, msg));
             messages.forEach((message) => renderMessageItem(message));
             messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
         } else {
@@ -312,6 +414,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await loadChannels();
 
+    // Create the reply preview bar element if it doesn't exist
+    let replyPreviewBar = document.getElementById("reply-preview-bar");
+    if (!replyPreviewBar) {
+        replyPreviewBar = document.createElement("div");
+        replyPreviewBar.id = "reply-preview-bar";
+        replyPreviewBar.style.display = "none"; // Initially hidden
+        // Insert it before the chat-input-area
+        const chatArea = document.querySelector(".chat-area");
+        const chatInputArea = document.querySelector(".chat-input-area");
+        if (chatArea && chatInputArea) {
+            chatArea.insertBefore(replyPreviewBar, chatInputArea);
+        }
+    }
+    updateReplyPreviewBar(); // Initial call to set its state
+
     // Listen for new messages from the main process
     window.electronAPI.onNewMessage((message) => {
         console.log("Renderer: Received new message object:", message);
@@ -358,13 +475,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 console.log(`Sending message: "${messageText}" to channel ID: ${channelId}`);
                 try {
-                    const result = await window.electronAPI.sendChatMessage(channelId, messageText);
+                    const repliedMessageId = replyingToMessage ? replyingToMessage.id : null;
+                    const result = await window.electronAPI.sendChatMessage(channelId, messageText, repliedMessageId);
                     if (result && result.error) {
                         console.error("Failed to send message:", result.error);
                         // Optionally, inform the user about the failure
                     } else {
                         console.log("Message sent successfully:", result.data);
                         messageInput.value = ""; // Clear input field on success
+                        replyingToMessage = null; // Clear reply state
+                        updateReplyPreviewBar(); // Update preview bar (will hide it)
                         // Optionally, refresh messages for the current channel
                         // loadAndDisplayMessages(channelId);
                     }

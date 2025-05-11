@@ -150,7 +150,7 @@ ipcMain.handle("get-all-profiles", async () => {
     return { data: profiles, error: null };
 });
 
-ipcMain.handle("send-chat-message", async (_event, channelId, messageContent) => {
+ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, repliedId) => {
     const userData = store.get("userData");
     if (!userData || !userData.access_token || !userData.user || !userData.user.id) {
         console.error("Cannot send message: User data, access token, or user ID not found.");
@@ -166,7 +166,7 @@ ipcMain.handle("send-chat-message", async (_event, channelId, messageContent) =>
     const token = userData.access_token;
 
     console.log(`Main: Attempting to post message "${messageContent}" to channel ${channelId} by user ${userId}`);
-    const { data, error } = await postMessage(messageContent, userId, channelId, token);
+    const { data, error } = await postMessage(messageContent, userId, channelId, token, repliedId);
 
     if (error) {
         console.error("Main: Failed to post message:", error);
