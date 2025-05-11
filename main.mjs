@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import Store from "electron-store";
 import path from "path";
 import { createAuthWindow } from "./windows/auth/main.mjs";
+import { uploadFile, uploadHashedImage } from "./lib/storage.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -150,7 +151,7 @@ ipcMain.handle("get-all-profiles", async () => {
     return { data: profiles, error: null };
 });
 
-ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, repliedId) => {
+ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, isImageContent, repliedId) => {
     const userData = store.get("userData");
     if (!userData || !userData.access_token || !userData.user || !userData.user.id) {
         console.error("Cannot send message: User data, access token, or user ID not found.");
@@ -165,8 +166,8 @@ ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, re
     const userId = userData.user.id;
     const token = userData.access_token;
 
-    console.log(`Main: Attempting to post message "${messageContent}" to channel ${channelId} by user ${userId}`);
-    const { data, error } = await postMessage(messageContent, userId, channelId, token, repliedId);
+    console.log(`Main: Attempting to post message "${messageContent}" to channel ${channelId} by user ${userId}, isImage: ${isImageContent}`);
+    const { data, error } = await postMessage(messageContent, userId, channelId, token, isImageContent, repliedId);
 
     if (error) {
         console.error("Main: Failed to post message:", error);
@@ -220,6 +221,32 @@ ipcMain.handle("leave-chat-room", async (_event, roomId) => {
     return { success: false, error: "Socket not initialized or roomId missing" };
 });
 
+// Modified to accept a single object with image details
+ipcMain.handle("upload-image", async (_event, imageDetails) => {
+    const accessToken = store.get("userData.access_token");
+    if (!accessToken) {
+        return { success: false, error: "User not authenticated" };
+    }
+
+    // The 'buffer' from renderer is an ArrayBuffer, convert to Node.js Buffer
+    const nodeBuffer = Buffer.from(imageDetails.buffer);
+
+    const { data: response, error } = await uploadHashedImage({
+        fileBuffer: nodeBuffer, // Pass the Node.js Buffer
+        mimeType: imageDetails.type, // Pass the MIME type from renderer
+        accessToken,
+        upsert: imageDetails.upsert !== undefined ? imageDetails.upsert : false, // Handle optional upsert
+        // name: imageDetails.name // name is used for storagePath generation inside uploadHashedImage
+    });
+
+    if (error) {
+        console.error("Main: Error uploading image:", error);
+        return { success: false, error };
+    }
+    console.log("Main: Image uploaded successfully:", response);
+    return { success: true, data: response }; // Changed to return 'data'
+});
+
 function checkStoredTokenValidity() {
     const userData = store.get("userData");
     const currentTime = Math.floor(Date.now() / 1000);
@@ -243,14 +270,15 @@ async function initApp() {
             messageSocket.socket?.close(); // Clean up existing socket if any
             messageSocket = null;
         }
-        return { isLoggedIn: false }
+        return { isLoggedIn: false };
     }
 
     console.log("Token valid, proceeding with app initialization.");
 
     // Initialize MessageSocket if we have an access token
     if (userData && userData.access_token) {
-        if (messageSocket) { // Close existing socket before creating a new one
+        if (messageSocket) {
+            // Close existing socket before creating a new one
             messageSocket.socket?.close();
         }
         messageSocket = new MessageSocket(userData.access_token);

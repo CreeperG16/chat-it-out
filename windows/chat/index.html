@@ -22,11 +22,23 @@
                     <h3>#general</h3>
                 </header>
                 <div class="message-list"></div>
+                <div id="image-preview-area" class="image-preview-area" style="display: none;">
+                    <img id="image-preview-img" src="#" alt="Image Preview" />
+                    <button id="cancel-image-upload-button" class="cancel-upload-button">&times;</button>
+                </div>
                 <footer class="chat-input-area">
+                    <label for="image-upload-input" class="upload-button">
+                        <img src="../../assets/image_upload_icon.svg" alt="Upload Image" />
+                    </label>
+                    <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
                     <input type="text" placeholder="Type a message in #general..." class="message-input">
                     <button class="send-button">Send</button>
                 </footer>
             </main>
+        </div>
+        <div id="image-modal" class="image-modal-overlay" style="display: none;">
+            <span class="close-modal-button">&times;</span>
+            <img class="modal-content" id="expanded-image">
         </div>
         <script type="module" src="renderer.mjs"></script>
     </body>

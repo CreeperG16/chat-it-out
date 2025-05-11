@@ -21,7 +21,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     // Messages
     getMessagesForChannel: (channelId) => ipcRenderer.invoke("get-messages-for-channel", channelId),
-    sendChatMessage: (channelId, message, repliedId) => ipcRenderer.invoke("send-chat-message", channelId, message, repliedId),
+
+    sendChatMessage: (channelId, message, isImage, repliedId) => ipcRenderer.invoke("send-chat-message", channelId, message, isImage, repliedId),
     onNewMessage: (callback) => ipcRenderer.on("new-message", (_event, value) => callback(value)), // Added
     joinChatRoom: (roomId) => ipcRenderer.invoke("join-chat-room", roomId), // Added
     leaveChatRoom: (roomId) => ipcRenderer.invoke("leave-chat-room", roomId), // Added
@@ -42,4 +43,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // This specific IPC call 'login-successful' might not be needed anymore with the new auth flow
     // as token detection and chat window opening is handled in main.mjs after external auth.
     // loginSuccessful: () => ipcRenderer.invoke('login-successful'),
+
+    uploadImage: (imageDetails) => // Modified to accept a single object
+        ipcRenderer.invoke("upload-image", imageDetails), // Pass the object directly
 });
