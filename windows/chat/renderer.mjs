@@ -10,6 +10,7 @@ let hiddenChannelsToggleElement = null; // To store the toggle element
 const messageListElement = document.querySelector(".message-list"); // Get message list element
 let profilesMap = new Map(); // To store user profiles
 let currentChannelId = null; // Added to keep track of the current channel
+let currentChannelMessagesMap = new Map(); // To store messages of the current channel by ID
 
 async function loadAllProfiles() {
     try {
@@ -95,6 +96,40 @@ function renderMessageItem(message) {
     const messageBodyDiv = document.createElement("div");
     messageBodyDiv.classList.add("message-body");
 
+    // Handle replied messages
+    if (message.replied_message_id) {
+        const originalMessage = currentChannelMessagesMap.get(message.replied_message_id);
+
+        if (originalMessage) {
+            const repliedMessageDiv = document.createElement("div");
+            repliedMessageDiv.classList.add("replied-message-preview");
+
+            const originalAuthorProfile = profilesMap.get(originalMessage.author_id);
+            const originalAuthorName = (originalAuthorProfile && originalAuthorProfile.username) || "Unknown User";
+
+            const repliedAuthorSpan = document.createElement("span");
+            repliedAuthorSpan.classList.add("replied-message-author");
+            repliedAuthorSpan.textContent = originalAuthorName;
+
+            const repliedContentSpan = document.createElement("span");
+            repliedContentSpan.classList.add("replied-message-content-snippet");
+            let contentSnippet = originalMessage.content || "";
+            if (originalMessage.is_image_content) {
+                contentSnippet = "Image"; // Placeholder for image replies
+            }
+            repliedContentSpan.textContent = contentSnippet.substring(0, 50) + (contentSnippet.length > 50 ? "..." : "");
+
+            repliedMessageDiv.appendChild(repliedAuthorSpan);
+            repliedMessageDiv.appendChild(repliedContentSpan);
+
+            const replyLine = document.createElement("div");
+            replyLine.classList.add("reply-line");
+            repliedMessageDiv.prepend(replyLine);
+
+            messageBodyDiv.appendChild(repliedMessageDiv);
+        }
+    }
+
     const messageHeaderDiv = document.createElement("div");
     messageHeaderDiv.classList.add("message-header");
 
@@ -148,6 +183,7 @@ async function loadAndDisplayMessages(channelId) {
         const { data: messages, error } = await window.electronAPI.getMessagesForChannel(channelId);
 
         messageListElement.innerHTML = ""; // Clear loading message
+        currentChannelMessagesMap.clear(); // Clear previous channel's messages
 
         if (error) {
             console.error(`Error fetching messages for channel ${channelId}:`, error);
@@ -158,6 +194,7 @@ async function loadAndDisplayMessages(channelId) {
         if (messages && messages.length > 0) {
             console.log("Messages received:", messages);
             messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            messages.forEach(msg => currentChannelMessagesMap.set(msg.id, msg));
             messages.forEach((message) => renderMessageItem(message));
             messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
         } else {
