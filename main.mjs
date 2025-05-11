@@ -8,13 +8,16 @@ import { fileURLToPath } from "url";
 import Store from "electron-store";
 import path from "path";
 import { createAuthWindow } from "./windows/auth/main.mjs";
-import { uploadFile, uploadHashedImage } from "./lib/storage.mjs";
+import { uploadHashedImage } from "./lib/storage.mjs";
+import { getStaticData } from "./lib/static-data.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const store = new Store();
 console.log("Store path:", store.path); // Useful for debugging
+
+const staticData = new Map();
 
 let messageSocket;
 let profilesMap = new Map();
@@ -274,6 +277,10 @@ async function initApp() {
     }
 
     console.log("Token valid, proceeding with app initialization.");
+
+    // JANK ALERT
+    // Get static data from the site such as emotes
+    await getStaticData({ store, staticData });
 
     // Initialize MessageSocket if we have an access token
     if (userData && userData.access_token) {
