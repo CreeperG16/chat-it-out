@@ -171,13 +171,16 @@ function renderMessageItem(message) {
             if (originalMessage.is_image_content) {
                 contentSnippet = "Image"; // Placeholder for image replies
             }
-            repliedContentSpan.textContent = contentSnippet.substring(0, 50) + (contentSnippet.length > 50 ? "..." : "");
+            repliedContentSpan.textContent =
+                contentSnippet.substring(0, 50) + (contentSnippet.length > 50 ? "..." : "");
 
             repliedMessageDiv.appendChild(repliedAuthorSpan);
             repliedMessageDiv.appendChild(repliedContentSpan);
             // Add click listener to scroll to the original message
             repliedMessageDiv.addEventListener("click", () => {
-                const originalMessageElement = document.querySelector(`[data-message-id="${message.replied_message_id}"]`);
+                const originalMessageElement = document.querySelector(
+                    `[data-message-id="${message.replied_message_id}"]`
+                );
                 if (originalMessageElement) {
                     originalMessageElement.scrollIntoView({ behavior: "smooth", block: "center" });
                     // Optionally, add a temporary highlight to the scrolled-to message
@@ -285,7 +288,7 @@ async function loadAndDisplayMessages(channelId) {
         if (messages && messages.length > 0) {
             console.log("Messages received:", messages);
             messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-            messages.forEach(msg => currentChannelMessagesMap.set(msg.id, msg));
+            messages.forEach((msg) => currentChannelMessagesMap.set(msg.id, msg));
             messages.forEach((message) => renderMessageItem(message));
             messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
         } else {
@@ -370,7 +373,8 @@ function renderChannelItem(channel, listElement) {
         listItem.classList.add("hidden-channel-item");
     }
 
-    listItem.addEventListener("click", async () => { // Made async
+    listItem.addEventListener("click", async () => {
+        // Made async
         const previouslyActiveChannelElement = document.querySelector(".sidebar .channel-item.active-channel");
         if (previouslyActiveChannelElement && previouslyActiveChannelElement.dataset.channelId !== channel.id) {
             const oldChannelId = previouslyActiveChannelElement.dataset.channelId;
@@ -562,6 +566,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 const channelId = activeChannelElement.dataset.channelId;
 
+                const repliedMessageId = replyingToMessage ? replyingToMessage.id : null;
+
                 // Check if there's an image to send
                 if (uploadedImageUrl) {
                     console.log(`Sending image message: "${uploadedImageUrl}" to channel ID: ${channelId}`);
@@ -569,7 +575,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                         const imageMessageResult = await window.electronAPI.sendChatMessage(
                             channelId,
                             uploadedImageUrl,
-                            true // is_image_content = true
+                            true,
+                            repliedMessageId
                         );
                         if (imageMessageResult && imageMessageResult.error) {
                             console.error("Failed to send image message:", imageMessageResult.error);
@@ -595,6 +602,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     }
                     hideImagePreview(); // Hide preview after sending
                     messageInput.value = ""; // Clear main text input as well
+                    replyingToMessage = null; // Clear reply state
+                    updateReplyPreviewBar(); // Update preview bar (will hide it)
                     return; // Don't send the text input content as a separate message if an image was sent
                 }
 
@@ -602,8 +611,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (messageText) {
                     console.log(`Sending message: "${messageText}" to channel ID: ${channelId}`);
                     try {
-                        const repliedMessageId = replyingToMessage ? replyingToMessage.id : null;
-                        const result = await window.electronAPI.sendChatMessage(channelId, messageText, repliedMessageId);
+                        const result = await window.electronAPI.sendChatMessage(
+                            channelId,
+                            messageText,
+                            false,
+                            repliedMessageId
+                        );
                         if (result && result.error) {
                             console.error("Failed to send message:", result.error);
                             // Optionally, inform the user about the failure
@@ -709,7 +722,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (imageFile) {
             event.preventDefault(); // Prevent default paste action if we're handling an image
             console.log(`Pasted image: ${imageFile.name}, type: ${imageFile.type}, size: ${imageFile.size}`);
-            
+
             // Show visual feedback (optional, similar to file input)
             const uploadButton = document.querySelector(".upload-button");
             if (uploadButton) uploadButton.classList.add("uploading");
