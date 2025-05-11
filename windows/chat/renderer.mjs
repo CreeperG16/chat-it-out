@@ -10,6 +10,7 @@ let hiddenChannelsToggleElement = null; // To store the toggle element
 const messageListElement = document.querySelector(".message-list"); // Get message list element
 let profilesMap = new Map(); // To store user profiles
 let currentChannelId = null; // Added to keep track of the current channel
+let uploadedImageUrl = null; // To store the URL of the image to be sent
 
 async function loadAllProfiles() {
     try {
@@ -223,6 +224,41 @@ async function uploadImageFile(file) {
     }
 }
 
+function showImagePreview(imageUrl) {
+    const previewArea = document.getElementById("image-preview-area");
+    const previewImg = document.getElementById("image-preview-img");
+    const messageInput = document.querySelector(".message-input"); // Get the main message input
+
+    uploadedImageUrl = imageUrl; // Store the URL for sending later
+    previewImg.src = imageUrl;
+    previewArea.style.display = "flex";
+
+    // Add click listener to open preview in modal
+    previewImg.onclick = () => openImageModal(uploadedImageUrl);
+
+    if (messageInput) {
+        messageInput.placeholder = "Add an optional caption..."; // Change placeholder
+        messageInput.focus(); // Focus the main input for caption
+    }
+}
+
+function hideImagePreview() {
+    const previewArea = document.getElementById("image-preview-area");
+    const imageUploadInput = document.getElementById("image-upload-input");
+    const messageInput = document.querySelector(".message-input"); // Get the main message input
+    const previewImg = document.getElementById("image-preview-img"); // Get the preview image
+
+    uploadedImageUrl = null;
+    previewArea.style.display = "none";
+    if (previewImg) {
+        previewImg.onclick = null; // Remove click listener when hiding
+    }
+    if (imageUploadInput) imageUploadInput.value = ""; // Reset file input
+    if (messageInput) {
+        messageInput.placeholder = "Type a message in #general..."; // Reset placeholder
+    }
+}
+
 function renderChannelItem(channel, listElement) {
     const listItem = document.createElement("li");
     listItem.classList.add("channel-item");
@@ -400,7 +436,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (sendButton && messageInput) {
         const sendMessage = async () => {
             const messageText = messageInput.value.trim();
-            if (messageText) {
+            if (messageText || uploadedImageUrl) {
                 const activeChannelElement = document.querySelector(".channel-item.active-channel");
                 if (!activeChannelElement || !activeChannelElement.dataset.channelId) {
                     console.error("No active channel selected or channel ID missing.");
@@ -409,20 +445,57 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 const channelId = activeChannelElement.dataset.channelId;
 
-                console.log(`Sending message: "${messageText}" to channel ID: ${channelId}`);
-                try {
-                    const result = await window.electronAPI.sendChatMessage(channelId, messageText);
-                    if (result && result.error) {
-                        console.error("Failed to send message:", result.error);
-                        // Optionally, inform the user about the failure
-                    } else {
-                        console.log("Message sent successfully:", result.data);
-                        messageInput.value = ""; // Clear input field on success
-                        // Optionally, refresh messages for the current channel
-                        // loadAndDisplayMessages(channelId);
+                // Check if there's an image to send
+                if (uploadedImageUrl) {
+                    console.log(`Sending image message: "${uploadedImageUrl}" to channel ID: ${channelId}`);
+                    try {
+                        const imageMessageResult = await window.electronAPI.sendChatMessage(
+                            channelId,
+                            uploadedImageUrl,
+                            true // is_image_content = true
+                        );
+                        if (imageMessageResult && imageMessageResult.error) {
+                            console.error("Failed to send image message:", imageMessageResult.error);
+                            alert(`Failed to send image message: ${JSON.stringify(imageMessageResult.error)}`);
+                        }
+                        // Send caption if provided (from the main message input)
+                        const captionText = messageInput.value.trim(); // Use main message input for caption
+                        if (captionText) {
+                            console.log(`Sending caption: "${captionText}" to channel ID: ${channelId}`);
+                            const captionMessageResult = await window.electronAPI.sendChatMessage(
+                                channelId,
+                                captionText,
+                                false // is_image_content = false
+                            );
+                            if (captionMessageResult && captionMessageResult.error) {
+                                console.error("Failed to send caption message:", captionMessageResult.error);
+                                alert(`Failed to send caption: ${JSON.stringify(captionMessageResult.error)}`);
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error sending image/caption IPC to main process:", error);
+                        alert(`Error sending image/caption: ${error.message}`);
                     }
-                } catch (error) {
-                    console.error("Error sending IPC message to main process:", error);
+                    hideImagePreview(); // Hide preview after sending
+                    messageInput.value = ""; // Clear main text input as well
+                    return; // Don't send the text input content as a separate message if an image was sent
+                }
+
+                // Regular text message sending
+                if (messageText) {
+                    console.log(`Sending message: "${messageText}" to channel ID: ${channelId}`);
+                    try {
+                        const result = await window.electronAPI.sendChatMessage(channelId, messageText, false);
+                        if (result && result.error) {
+                            console.error("Failed to send message:", result.error);
+                            // Optionally, inform the user about the failure
+                        } else {
+                            console.log("Message sent successfully:", result.data);
+                            messageInput.value = ""; // Clear input field on success
+                        }
+                    } catch (error) {
+                        console.error("Error sending IPC message to main process:", error);
+                    }
                 }
             }
         };
@@ -460,55 +533,35 @@ document.addEventListener("DOMContentLoaded", async () => {
             const file = event.target.files[0];
             if (file) {
                 console.log(`Selected file: ${file.name}, type: ${file.type}, size: ${file.size}`);
-                // Show some visual feedback that upload is in progress (optional)
-                const uploadButton = document.querySelector(".upload-button"); // Or a more specific selector
-                if (uploadButton) uploadButton.classList.add("uploading"); // Add a class for styling
+                const uploadButton = document.querySelector(".upload-button");
+                if (uploadButton) uploadButton.classList.add("uploading");
 
                 const result = await uploadImageFile(file);
 
-                if (uploadButton) uploadButton.classList.remove("uploading"); // Remove uploading class
+                if (uploadButton) uploadButton.classList.remove("uploading");
 
                 if (result.error) {
                     console.error("Upload failed:", result.error);
                     alert(`Image upload failed: ${JSON.stringify(result.error)}`);
+                    imageUploadInput.value = ""; // Reset file input on failure
                 } else {
-                    console.log("Upload successful:", result.data);
-
-                    const activeChannelElement = document.querySelector(".channel-item.active-channel");
-                    if (!activeChannelElement || !activeChannelElement.dataset.channelId) {
-                        console.error("No active channel selected or channel ID missing for sending image message.");
-                        alert("Please select a channel first before sending an image.");
-                        return;
-                    }
-                    const channelId = activeChannelElement.dataset.channelId;
-                    const imageUrl = result.data?.url; // Use the direct URL from the upload response
-
-                    if (imageUrl) {
-                        console.log(`Sending image message: "${imageUrl}" to channel ID: ${channelId}`);
-                        try {
-                            const messageResult = await window.electronAPI.sendChatMessage(
-                                channelId,
-                                imageUrl, // Send the image URL as content
-                                true // Set is_image_content to true
-                            );
-                            if (messageResult && messageResult.error) {
-                                console.error("Failed to send image message:", messageResult.error);
-                                alert(`Failed to send image message: ${JSON.stringify(messageResult.error)}`);
-                            } else {
-                                console.log("Image message sent successfully:", messageResult.data);
-                                // Message will be rendered by the onNewMessage listener
-                            }
-                        } catch (error) {
-                            console.error("Error sending image message IPC to main process:", error);
-                            alert(`Error sending image message: ${error.message}`);
-                        }
+                    console.log("Upload successful, showing preview:", result.data);
+                    if (result.data?.url) {
+                        showImagePreview(result.data.url);
                     } else {
                         console.error("Upload result did not contain a valid image URL.", result.data);
                         alert("Upload succeeded, but no image URL was returned.");
+                        imageUploadInput.value = ""; // Reset file input
                     }
+                    // Message is not sent here anymore, only preview is shown
                 }
-                imageUploadInput.value = ""; // Reset file input
+                // imageUploadInput.value = ""; // Resetting is now handled in showImagePreview or on failure
             }
         });
+    }
+
+    const cancelImageUploadButton = document.getElementById("cancel-image-upload-button");
+    if (cancelImageUploadButton) {
+        cancelImageUploadButton.addEventListener("click", hideImagePreview);
     }
 });

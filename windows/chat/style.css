@@ -308,6 +308,39 @@ body {
   background-color: #0056b3;
 }
 
+/* Image Preview Area Styles */
+.image-preview-area {
+    display: flex; /* Use flex for layout */
+    align-items: center; /* Vertically align items */
+    padding: 10px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.03); /* Slightly different background */
+    position: relative; /* For positioning the cancel button */
+}
+
+#image-preview-img {
+    width: 60px; /* Adjust size as needed */
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cancel-upload-button {
+    background-color: transparent;
+    color: #aaa;
+    border: none;
+    font-size: 24px; /* Make X larger */
+    cursor: pointer;
+    padding: 0 5px; /* Minimal padding */
+    line-height: 1; /* Ensure it aligns well */
+}
+
+.cancel-upload-button:hover {
+    color: #fff;
+}
+
 /* Custom Scrollbar (optional, for a more polished look) */
 ::-webkit-scrollbar {
   width: 6px;
