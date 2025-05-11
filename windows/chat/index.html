@@ -23,10 +23,12 @@
                 </header>
                 <div class="message-list"></div>
                 <footer class="chat-input-area">
+                    <label for="image-upload-input" class="upload-button">
+                        <img src="../../assets/image_upload_icon.svg" alt="Upload Image" />
+                    </label>
+                    <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
                     <input type="text" placeholder="Type a message in #general..." class="message-input">
                     <button class="send-button">Send</button>
-                    <!-- Temporary file input for testing image uploads -->
-                    <input type="file" id="image-upload-input" accept="image/*">
                 </footer>
             </main>
         </div>

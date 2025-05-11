@@ -249,6 +249,28 @@ body {
   background: rgba(255, 255, 255, 0.02);
 }
 
+.upload-button {
+  padding: 8px 12px;
+  margin-right: 8px;
+  background-color: #4CAF50; /* Green background */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-button img {
+  width: 20px; /* Adjust as needed */
+  height: 20px; /* Adjust as needed */
+}
+
+.upload-button:hover {
+  background-color: #45a049; /* Darker green on hover */
+}
+
 .message-input {
   flex-grow: 1;
   padding: 8px 12px;

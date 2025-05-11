@@ -460,14 +460,52 @@ document.addEventListener("DOMContentLoaded", async () => {
             const file = event.target.files[0];
             if (file) {
                 console.log(`Selected file: ${file.name}, type: ${file.type}, size: ${file.size}`);
+                // Show some visual feedback that upload is in progress (optional)
+                const uploadButton = document.querySelector(".upload-button"); // Or a more specific selector
+                if (uploadButton) uploadButton.classList.add("uploading"); // Add a class for styling
+
                 const result = await uploadImageFile(file);
+
+                if (uploadButton) uploadButton.classList.remove("uploading"); // Remove uploading class
+
                 if (result.error) {
                     console.error("Upload failed:", result.error);
-                    alert(`Image upload failed: ${JSON.stringify(result.error)}`); // Temporary feedback
+                    alert(`Image upload failed: ${JSON.stringify(result.error)}`);
                 } else {
                     console.log("Upload successful:", result.data);
-                    alert(`Image uploaded successfully! URL: "${result.data.url}"`); // Temporary feedback
-                    // TODO: Handle successful upload, e.g., send image message
+
+                    const activeChannelElement = document.querySelector(".channel-item.active-channel");
+                    if (!activeChannelElement || !activeChannelElement.dataset.channelId) {
+                        console.error("No active channel selected or channel ID missing for sending image message.");
+                        alert("Please select a channel first before sending an image.");
+                        return;
+                    }
+                    const channelId = activeChannelElement.dataset.channelId;
+                    const imageUrl = result.data?.url; // Use the direct URL from the upload response
+
+                    if (imageUrl) {
+                        console.log(`Sending image message: "${imageUrl}" to channel ID: ${channelId}`);
+                        try {
+                            const messageResult = await window.electronAPI.sendChatMessage(
+                                channelId,
+                                imageUrl, // Send the image URL as content
+                                true // Set is_image_content to true
+                            );
+                            if (messageResult && messageResult.error) {
+                                console.error("Failed to send image message:", messageResult.error);
+                                alert(`Failed to send image message: ${JSON.stringify(messageResult.error)}`);
+                            } else {
+                                console.log("Image message sent successfully:", messageResult.data);
+                                // Message will be rendered by the onNewMessage listener
+                            }
+                        } catch (error) {
+                            console.error("Error sending image message IPC to main process:", error);
+                            alert(`Error sending image message: ${error.message}`);
+                        }
+                    } else {
+                        console.error("Upload result did not contain a valid image URL.", result.data);
+                        alert("Upload succeeded, but no image URL was returned.");
+                    }
                 }
                 imageUploadInput.value = ""; // Reset file input
             }
