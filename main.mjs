@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 config();
 
-import { getChannels, getMessages, getProfiles, postMessage } from "./lib/api.mjs";
+import { deleteMessage, getChannels, getMessages, getProfiles, postMessage } from "./lib/api.mjs";
 import { MessageSocket } from "./lib/socket.mjs";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "url";
@@ -169,7 +169,9 @@ ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, is
     const userId = userData.user.id;
     const token = userData.access_token;
 
-    console.log(`Main: Attempting to post message "${messageContent}" to channel ${channelId} by user ${userId}, isImage: ${isImageContent}`);
+    console.log(
+        `Main: Attempting to post message "${messageContent}" to channel ${channelId} by user ${userId}, isImage: ${isImageContent}`
+    );
     const { data, error } = await postMessage(messageContent, userId, channelId, token, isImageContent, repliedId);
 
     if (error) {
@@ -178,6 +180,24 @@ ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, is
     }
 
     console.log("Main: Message posted successfully");
+    return { data, error: null };
+});
+
+ipcMain.handle("delete-chat-message", async (_event, id) => {
+    const userData = store.get("userData");
+    if (!userData || !userData.access_token || !userData.user || !userData.user.id) {
+        console.error("Cannot delete message: User data, access token, or user ID not found.");
+        return { data: null, error: { message: "User not authenticated or user ID missing" } };
+    }
+
+    const { data, error } = await deleteMessage(id, userData.access_token);
+
+    if (error) {
+        console.error("Main: Failed to delete message:", error);
+        return { data: null, error };
+    }
+
+    console.log("Main: Message deleted successfully");
     return { data, error: null };
 });
 
@@ -207,8 +227,8 @@ ipcMain.handle("request-open-chat-window", () => {
 ipcMain.handle("join-chat-room", async (_event, roomId) => {
     if (messageSocket && roomId) {
         console.log(`Main: Joining room ${roomId}`);
-        messageSocket.joinRoom(roomId);
-        return { success: true };
+        const result = await messageSocket.joinRoom(roomId);
+        return { success: result.status === "ok", data: result };
     }
     console.error("Main: Could not join room. Socket or roomId missing.", { hasSocket: !!messageSocket, roomId });
     return { success: false, error: "Socket not initialized or roomId missing" };
@@ -217,8 +237,8 @@ ipcMain.handle("join-chat-room", async (_event, roomId) => {
 ipcMain.handle("leave-chat-room", async (_event, roomId) => {
     if (messageSocket && roomId) {
         console.log(`Main: Leaving room ${roomId}`);
-        messageSocket.leaveRoom(roomId);
-        return { success: true };
+        const result = await messageSocket.leaveRoom(roomId);
+        return { success: result.status === "ok", data: result };
     }
     console.error("Main: Could not leave room. Socket or roomId missing.");
     return { success: false, error: "Socket not initialized or roomId missing" };
@@ -256,6 +276,11 @@ function checkStoredTokenValidity() {
 
     if (!userData || !userData.access_token) return false;
     if (userData.expires_at > currentTime) return true;
+}
+
+function emitRendererEvent(window, eventName, ...args) {
+    console.log("EVENT:", eventName, [...args]);
+    return window.webContents.send("event:" + eventName, ...args);
 }
 
 async function initApp() {
@@ -299,6 +324,10 @@ async function initApp() {
                 console.log("Main: Received message via socket, but chat window not available:", message);
             }
         };
+
+        messageSocket.on("message-create", (...args) => emitRendererEvent(chatWindow, "message-create", ...args));
+        messageSocket.on("message-delete", (...args) => emitRendererEvent(chatWindow, "message-delete", ...args));
+
         console.log("Main: MessageSocket initialized and connected.");
     } else {
         console.error("Main: Could not initialize MessageSocket, user data or access token missing.");

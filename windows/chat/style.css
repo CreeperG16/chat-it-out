@@ -1,429 +1,461 @@
 /* Basic styles for chat window */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  margin: 0;
-  height: 100vh;
-  background-color: #12121a; /* Slightly darker than login for depth, or keep same */
-  color: #e0e0e0;
-  overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    height: 100vh;
+    background-color: #12121a; /* Slightly darker than login for depth, or keep same */
+    color: #e0e0e0;
+    overflow: hidden;
 }
 
 .chat-container {
-  display: flex;
-  height: 100vh;
-  background: rgba(18, 18, 26, 0.8); /* Main container background with some transparency */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    height: 100vh;
+    background: rgba(18, 18, 26, 0.8); /* Main container background with some transparency */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 /* Sidebar Styles */
 .sidebar {
-  width: 220px;
-  background: rgba(255, 255, 255, 0.03);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0; /* Prevent sidebar from shrinking */
+    width: 220px;
+    background: rgba(255, 255, 255, 0.03);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0; /* Prevent sidebar from shrinking */
 }
 
 .user-profile-header {
-  padding: 10px 15px; /* Adjusted padding */
-  display: flex;
-  flex-direction: row; /* Avatar and username side-by-side */
-  align-items: center; /* Vertically center items */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  margin-bottom: 10px;
+    padding: 10px 15px; /* Adjusted padding */
+    display: flex;
+    flex-direction: row; /* Avatar and username side-by-side */
+    align-items: center; /* Vertically center items */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 10px;
 }
 
 .avatar-small {
-  width: 36px; /* Adjusted size for side-by-side layout */
-  height: 36px;
-  border-radius: 6px; /* Rounded corners for the square avatar */
-  background-color: rgba(255, 255, 255, 0.1);
-  margin-right: 10px; /* Space between avatar and username */
-  flex-shrink: 0; /* Prevent avatar from shrinking */
+    width: 36px; /* Adjusted size for side-by-side layout */
+    height: 36px;
+    border-radius: 6px; /* Rounded corners for the square avatar */
+    background-color: rgba(255, 255, 255, 0.1);
+    margin-right: 10px; /* Space between avatar and username */
+    flex-shrink: 0; /* Prevent avatar from shrinking */
 }
 
 #username-sidebar {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e0e0e0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: calc(100% - 46px); /* Adjust based on avatar width + margin + logout button space if any */
-  text-align: left; /* Ensure username is left-aligned */
+    font-size: 14px;
+    font-weight: 600;
+    color: #e0e0e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 46px); /* Adjust based on avatar width + margin + logout button space if any */
+    text-align: left; /* Ensure username is left-aligned */
 }
 
 .sidebar-header {
-  padding: 0 15px 10px 15px;
+    padding: 0 15px 10px 15px;
 }
 
 .sidebar-header h2 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #b0b0b0;
-  margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #b0b0b0;
+    margin: 0;
 }
 
 .channel-list {
-  list-style: none;
-  padding: 10px 0;
-  margin: 0;
-  overflow-y: auto;
-  flex-grow: 1;
+    list-style: none;
+    padding: 10px 0;
+    margin: 0;
+    overflow-y: auto;
+    flex-grow: 1;
 }
 
 .channel-item {
-  padding: 8px 15px;
-  font-size: 14px;
-  color: #b0b0b0;
-  cursor: pointer;
-  border-radius: 3px; /* Very slight rounding */
-  margin: 2px 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: left; /* Ensure channel names are left-aligned */
+    padding: 8px 15px;
+    font-size: 14px;
+    color: #b0b0b0;
+    cursor: pointer;
+    border-radius: 3px; /* Very slight rounding */
+    margin: 2px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left; /* Ensure channel names are left-aligned */
 }
 
 .hidden-channels-toggle {
-  padding: 10px 15px;
-  font-size: 13px;
-  color: #a0a0a0;
-  cursor: pointer;
-  border-top: 1px solid rgba(255, 255, 255, 0.05); /* Separator from visible channels */
-  margin-top: 5px; /* Space above the toggle */
-  text-align: center;
+    padding: 10px 15px;
+    font-size: 13px;
+    color: #a0a0a0;
+    cursor: pointer;
+    border-top: 1px solid rgba(255, 255, 255, 0.05); /* Separator from visible channels */
+    margin-top: 5px; /* Space above the toggle */
+    text-align: center;
 }
 
 .hidden-channels-toggle:hover {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.03);
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
 .hidden-channels-list {
-  /* Uses .channel-list styles by default */
-  /* Add specific styles if needed, e.g., slightly different padding or item appearance */
-  padding-top: 5px; /* Space above the first hidden channel */
+    /* Uses .channel-list styles by default */
+    /* Add specific styles if needed, e.g., slightly different padding or item appearance */
+    padding-top: 5px; /* Space above the first hidden channel */
 }
 
 .channel-item-error,
 .channel-item-info {
-  padding: 8px 15px;
-  font-size: 14px;
-  color: #808080;
-  margin: 2px 10px;
-  text-align: center;
+    padding: 8px 15px;
+    font-size: 14px;
+    color: #808080;
+    margin: 2px 10px;
+    text-align: center;
 }
 
 .message-list-info,
 .message-list-error {
-  text-align: center;
-  padding: 20px;
-  color: #808080;
-  font-style: italic;
+    text-align: center;
+    padding: 20px;
+    color: #808080;
+    font-style: italic;
 }
 
 .channel-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
 }
 
 .channel-item.active-channel {
-  background-color: rgba(0, 122, 255, 0.2); /* Subtle active indication */
-  color: #009fff; /* Brighter text for active channel */
-  font-weight: 500;
+    background-color: rgba(0, 122, 255, 0.2); /* Subtle active indication */
+    color: #009fff; /* Brighter text for active channel */
+    font-weight: 500;
 }
 
 .channel-item.unread {
-  font-weight: 600;
-  color: #ffffff;
+    font-weight: 600;
+    color: #ffffff;
 }
 
 /* Chat Area Styles */
 .chat-area {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden; /* Important for managing message list scroll */
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Important for managing message list scroll */
 }
 
 .chat-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .chat-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #ffffff;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
 }
 
 .message-list {
-  flex-grow: 1;
-  padding: 15px 20px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
+    flex-grow: 1;
+    padding: 15px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .message {
-  display: flex;
-  align-items: flex-start; /* Align avatar with top of message body */
-  margin-bottom: 12px;
-  max-width: 95%; /* Prevent messages from taking full width */
-  position: relative; /* Needed for absolute positioning of the reply button */
+    display: flex;
+    align-items: flex-start; /* Align avatar with top of message body */
+    margin-bottom: 12px;
+    max-width: 95%; /* Prevent messages from taking full width */
+    position: relative; /* Needed for absolute positioning of the reply button */
+    transition: background-color 0.1s ease-in-out;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.message:hover {
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 .avatar {
-  width: 32px; /* Compact avatar */
-  height: 32px;
-  border-radius: 4px; /* Slightly rounded avatar */
-  margin-right: 10px;
-  flex-shrink: 0;
-  background-color: rgba(255, 255, 255, 0.1); /* Placeholder bg if image fails */
+    width: 32px; /* Compact avatar */
+    height: 32px;
+    border-radius: 4px; /* Slightly rounded avatar */
+    margin-right: 10px;
+    flex-shrink: 0;
+    background-color: rgba(255, 255, 255, 0.1); /* Placeholder bg if image fails */
 }
 
 .message-body {
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
 
 .message-header {
-  display: flex;
-  align-items: baseline; /* Align author and timestamp nicely */
-  margin-bottom: 3px;
+    display: flex;
+    align-items: baseline; /* Align author and timestamp nicely */
+    margin-bottom: 3px;
 }
 
 .message-author {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e0e0e0;
-  margin-right: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin-right: 8px;
 }
 
 .message-timestamp {
-  font-size: 11px;
-  color: #808080;
+    font-size: 11px;
+    color: #808080;
 }
 
 .message-content {
-  font-size: 14px;
-  line-height: 1.5;
-  color: #c0c0c0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #c0c0c0;
 }
 
 .message-content p {
-  margin: 0 0 3px 0; /* Compact paragraph spacing */
+    margin: 0 0 3px 0; /* Compact paragraph spacing */
 }
 
 .message-image {
-  max-width: 100%; /* Ensure image is not wider than its container */
-  max-height: 300px; /* Limit image height to prevent overly large images */
-  border-radius: 4px; /* Optional: match other border radiuses */
-  margin-top: 5px; /* Add some space above the image */
-  cursor: pointer; /* Add cursor pointer to indicate it's clickable */
+    max-width: 100%; /* Ensure image is not wider than its container */
+    max-height: 300px; /* Limit image height to prevent overly large images */
+    border-radius: 4px; /* Optional: match other border radiuses */
+    margin-top: 5px; /* Add some space above the image */
+    cursor: pointer; /* Add cursor pointer to indicate it's clickable */
 }
 
-/* Reply Button on Message Hover */
-.reply-button {
-  position: absolute;
-  top: -5px;
-  right: 5px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #e0e0e0;
-  border: none;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 14px;
-  cursor: pointer;
-  display: none; /* Hidden by default */
-  z-index: 10; /* Ensure it's above message content */
-  line-height: 1;
+/* Reply and Delete buttons on Message Hover */
+.message .reply-button,
+.message .delete-button {
+    position: absolute;
+    top: -5px; /* Consistent with original reply button style, adjust if needed */
+    background-color: rgba(25, 25, 25, 1);
+    color: #e0e0e0;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 14px; /* Matched to original reply button */
+    cursor: pointer;
+    z-index: 10;
+    line-height: 1; /* Matched to original reply button */
+    display: none; /* Hidden by default */
 }
 
-.message:hover .reply-button {
-  display: block; /* Show on hover */
+/* Individual positioning for the buttons */
+.message .reply-button {
+    right: 5px; /* Reply button on the far right */
 }
 
-.reply-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+.message .delete-button {
+    right: 35px; /* Delete button to the left of the reply button (adjust spacing as needed) */
+    /* Approx. 25px for reply button width + 5px gap */
+}
+
+/* Show buttons on message hover */
+.message:hover .reply-button,
+.message:hover .delete-button {
+    display: block; /* Or inline-block; block is fine for absolutely positioned items */
+}
+
+/* Hover effect for the buttons themselves */
+.message .reply-button:hover,
+.message .delete-button:hover {
+    background-color: rgba(50, 50, 50, 1); /* Consistent hover background */
+}
+
+.message:hover .reply-button,
+.message:hover .delete-button {
+    visibility: visible;
+    opacity: 1;
 }
 
 /* Styles for Replied Message Preview */
 .replied-message-preview {
-  background-color: rgba(255, 255, 255, 0.04);
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-bottom: 5px;
-  font-size: 12px;
-  color: #a0a0a0;
-  display: flex;
-  align-items: center;
-  position: relative; /* For the reply line positioning */
-  overflow: hidden; /* To ensure content respects padding and border-radius */
-  border-left: 2px solid rgba(0, 122, 255, 0.5); /* Reply indicator line */
-  cursor: pointer; /* Indicate it's clickable */
+    background-color: rgba(255, 255, 255, 0.04);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: #a0a0a0;
+    display: flex;
+    align-items: center;
+    position: relative; /* For the reply line positioning */
+    overflow: hidden; /* To ensure content respects padding and border-radius */
+    border-left: 2px solid rgba(0, 122, 255, 0.5); /* Reply indicator line */
+    cursor: pointer; /* Indicate it's clickable */
 }
 
 .replied-message-preview:hover {
-  background-color: rgba(255, 255, 255, 0.06); /* Slightly lighten on hover */
+    background-color: rgba(255, 255, 255, 0.06); /* Slightly lighten on hover */
 }
 
 .replied-message-author {
-  font-weight: 600;
-  color: #c0c0c0;
-  margin-right: 4px;
+    font-weight: 600;
+    color: #c0c0c0;
+    margin-right: 4px;
 }
 
 .replied-message-content-snippet {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 300px; /* Adjust as needed */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px; /* Adjust as needed */
 }
 
 /* Highlight for scrolled-to message */
 .highlighted-message {
-  background-color: rgba(0, 122, 255, 0.15) !important; /* Use !important to override other backgrounds if necessary */
-  transition: background-color 0.3s ease-in-out, padding 0.3s ease-in-out;
-  padding: 5px; /* Add padding */
-  border-radius: 4px; /* Optional: Add border-radius to match other elements */
+    background-color: rgba(
+        0,
+        122,
+        255,
+        0.15
+    ) !important; /* Use !important to override other backgrounds if necessary */
+    transition: background-color 0.3s ease-in-out, padding 0.3s ease-in-out;
+    padding: 5px; /* Add padding */
+    border-radius: 4px; /* Optional: Add border-radius to match other elements */
 }
 
 /* Reply Preview Bar */
 #reply-preview-bar {
-  display: flex; /* Will be set to flex by JS when active */
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 20px;
-  background-color: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 13px;
-  color: #b0b0b0;
+    display: flex; /* Will be set to flex by JS when active */
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 20px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+    color: #b0b0b0;
 }
 
 .reply-preview-content {
-  display: flex;
-  flex-direction: column; /* Stack label and snippet */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-right: 10px;
+    display: flex;
+    flex-direction: column; /* Stack label and snippet */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 10px;
 }
 
 .reply-preview-label {
-  font-weight: 500;
-  color: #c0c0c0;
-  font-size: 12px;
-  margin-bottom: 2px;
+    font-weight: 500;
+    color: #c0c0c0;
+    font-size: 12px;
+    margin-bottom: 2px;
 }
 
 .reply-preview-snippet {
-  font-style: italic;
-  color: #a0a0a0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+    font-style: italic;
+    color: #a0a0a0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .cancel-reply-button {
-  background: none;
-  border: none;
-  color: #a0a0a0;
-  font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 0 5px;
-  line-height: 1;
+    background: none;
+    border: none;
+    color: #a0a0a0;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
 }
 
 .cancel-reply-button:hover {
-  color: #ffffff;
+    color: #ffffff;
 }
 
 /* System Event Message Styles */
 .system-event {
-  text-align: center; /* Center the text horizontally */
-  margin: 10px 0; /* Add some vertical spacing */
-  padding: 5px 20px; /* Add some padding */
+    text-align: center; /* Center the text horizontally */
+    margin: 10px 0; /* Add some vertical spacing */
+    padding: 5px 20px; /* Add some padding */
 }
 
 .system-event p {
-  color: #808080; /* Slightly grey color for the text */
-  font-size: 13px; /* Slightly smaller font size */
-  font-style: italic; /* Italicize for differentiation */
-  margin: 0;
+    color: #808080; /* Slightly grey color for the text */
+    font-size: 13px; /* Slightly smaller font size */
+    font-style: italic; /* Italicize for differentiation */
+    margin: 0;
 }
 
 /* Chat Input Area Styles */
 .chat-input-area {
-  display: flex;
-  padding: 10px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    padding: 10px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .upload-button {
-  padding: 8px 12px;
-  margin-right: 8px;
-  background-color: #4CAF50; /* Green background */
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    padding: 8px 12px;
+    margin-right: 8px;
+    background-color: #4caf50; /* Green background */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .upload-button img {
-  width: 20px; /* Adjust as needed */
-  height: 20px; /* Adjust as needed */
+    width: 20px; /* Adjust as needed */
+    height: 20px; /* Adjust as needed */
 }
 
 .upload-button:hover {
-  background-color: #45a049; /* Darker green on hover */
+    background-color: #45a049; /* Darker green on hover */
 }
 
 .message-input {
-  flex-grow: 1;
-  padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.2);
-  color: #e0e0e0;
-  font-size: 14px;
-  margin-right: 8px;
+    flex-grow: 1;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #e0e0e0;
+    font-size: 14px;
+    margin-right: 8px;
 }
 
 .message-input::placeholder {
-  color: #707070;
+    color: #707070;
 }
 
 .message-input:focus {
-  outline: none;
-  border-color: rgba(0, 122, 255, 0.5);
-  background-color: rgba(0, 0, 0, 0.3);
+    outline: none;
+    border-color: rgba(0, 122, 255, 0.5);
+    background-color: rgba(0, 0, 0, 0.3);
 }
 
 .send-button {
-  padding: 8px 15px;
-  background-color: #007aff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+    padding: 8px 15px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
 .send-button:hover {
-  background-color: #0056b3;
+    background-color: #0056b3;
 }
 
 /* Image Preview Area Styles */
@@ -461,52 +493,52 @@ body {
 
 /* Custom Scrollbar (optional, for a more polished look) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 3px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.25);
 }
 
 /* Image Modal Styles */
 .image-modal-overlay {
-  position: fixed; /* Stay in place */
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.8); /* Black background with opacity */
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  display: flex; /* Use flexbox for centering */
-  justify-content: center;
-  align-items: center;
-  z-index: 1000; /* Sit on top */
+    position: fixed; /* Stay in place */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); /* Black background with opacity */
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex; /* Use flexbox for centering */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Sit on top */
 }
 
 .modal-content {
-  max-width: 80%;
-  max-height: 80%;
-  object-fit: contain; /* Scale image down to fit, preserving aspect ratio */
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain; /* Scale image down to fit, preserving aspect ratio */
 }
 
 .close-modal-button {
-  position: absolute;
-  top: 20px;
-  right: 35px;
-  color: #f1f1f1;
-  font-size: 40px;
-  font-weight: bold;
-  cursor: pointer;
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
 }
