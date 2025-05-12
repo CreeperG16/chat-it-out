@@ -46,4 +46,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     uploadImage: (imageDetails) => // Modified to accept a single object
         ipcRenderer.invoke("upload-image", imageDetails), // Pass the object directly
+
+    // event
+    onEvent: (eventName, callback) => ipcRenderer.on("event:" + eventName, (_ev, ...args) => callback(...args)),
 });

@@ -523,32 +523,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateReplyPreviewBar(); // Initial call to set its state
 
     // Listen for new messages from the main process
-    window.electronAPI.onNewMessage((message) => {
-        console.log("Renderer: Received new message object:", message);
-        if (message && message.payload && message.payload.payload && message.payload.payload.message) {
-            const actualMessage = message.payload.payload.message;
-            console.log("Renderer: Actual message content:", actualMessage);
+    window.electronAPI.onEvent("message-create", async ({ message }) => {
+        console.log("Renderer: Received new message object.");
+        if (message.room_id !== currentChannelId) return;
 
-            // Check if the message belongs to the currently active channel
-            if (actualMessage.room_id === currentChannelId) {
-                // Ensure profiles are loaded if not already
-                if (profilesMap.size === 0) {
-                    loadAllProfiles().then(() => {
-                        renderMessageItem(actualMessage);
-                        messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
-                    });
-                } else {
-                    renderMessageItem(actualMessage);
-                    messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
-                }
-            } else {
-                console.log(
-                    `Renderer: New message for room ${actualMessage.room_id}, but current room is ${currentChannelId}. Not rendering.`
-                );
-                // Optionally, add a notification for messages in other channels
-            }
-        } else {
-            console.warn("Renderer: Received message in unexpected format:", message);
+        if (profilesMap.size === 0) await loadAllProfiles();
+
+        renderMessageItem(message);
+        messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
+    });
+
+    // Listen for message delete events
+    window.electronAPI.onEvent("message-delete", async ({ message }) => {
+        console.log("Renderer: Received message delete event.");
+        if (message.room_id !== currentChannelId) return;
+
+        const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+        if (messageElement) messageElement.remove();
+
+        // Remove the message from the local cache as well
+        if (currentChannelMessagesMap.has(message.id)) {
+            currentChannelMessagesMap.delete(message.id);
+            console.log(`Message with ID ${message.id} removed from local cache.`);
         }
     });
 

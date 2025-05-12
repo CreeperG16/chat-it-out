@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import Store from "electron-store";
 import path from "path";
 import { createAuthWindow } from "./windows/auth/main.mjs";
-import { uploadFile, uploadHashedImage } from "./lib/storage.mjs";
+import { uploadHashedImage } from "./lib/storage.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -255,6 +255,11 @@ function checkStoredTokenValidity() {
     if (userData.expires_at > currentTime) return true;
 }
 
+function emitRendererEvent(window, eventName, ...args) {
+    console.log("EVENT:", eventName, [...args]);
+    return window.webContents.send("event:" + eventName, ...args);
+}
+
 async function initApp() {
     // Check if we already have user data and a valid token.
     const userData = store.get("userData");
@@ -292,6 +297,10 @@ async function initApp() {
                 console.log("Main: Received message via socket, but chat window not available:", message);
             }
         };
+
+        messageSocket.on("message-create", (...args) => emitRendererEvent(chatWindow, "message-create", ...args));
+        messageSocket.on("message-delete", (...args) => emitRendererEvent(chatWindow, "message-delete", ...args));
+
         console.log("Main: MessageSocket initialized and connected.");
     } else {
         console.error("Main: Could not initialize MessageSocket, user data or access token missing.");
