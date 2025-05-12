@@ -224,8 +224,8 @@ ipcMain.handle("request-open-chat-window", () => {
 ipcMain.handle("join-chat-room", async (_event, roomId) => {
     if (messageSocket && roomId) {
         console.log(`Main: Joining room ${roomId}`);
-        messageSocket.joinRoom(roomId);
-        return { success: true };
+        const result = await messageSocket.joinRoom(roomId);
+        return { success: result.status === "ok", data: result };
     }
     console.error("Main: Could not join room. Socket or roomId missing.", { hasSocket: !!messageSocket, roomId });
     return { success: false, error: "Socket not initialized or roomId missing" };
@@ -234,8 +234,8 @@ ipcMain.handle("join-chat-room", async (_event, roomId) => {
 ipcMain.handle("leave-chat-room", async (_event, roomId) => {
     if (messageSocket && roomId) {
         console.log(`Main: Leaving room ${roomId}`);
-        messageSocket.leaveRoom(roomId);
-        return { success: true };
+        const result = await messageSocket.leaveRoom(roomId);
+        return { success: result.status === "ok", data: result };
     }
     console.error("Main: Could not leave room. Socket or roomId missing.");
     return { success: false, error: "Socket not initialized or roomId missing" };
