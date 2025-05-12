@@ -555,6 +555,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (profilesMap.size === 0) await loadAllProfiles();
 
+        currentChannelMessagesMap.set(message.id, message);
         renderMessageItem(message);
         messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
     });
