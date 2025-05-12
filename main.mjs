@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 config();
 
-import { getChannels, getMessages, getProfiles, postMessage } from "./lib/api.mjs";
+import { deleteMessage, getChannels, getMessages, getProfiles, postMessage } from "./lib/api.mjs";
 import { MessageSocket } from "./lib/socket.mjs";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "url";
@@ -166,7 +166,9 @@ ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, is
     const userId = userData.user.id;
     const token = userData.access_token;
 
-    console.log(`Main: Attempting to post message "${messageContent}" to channel ${channelId} by user ${userId}, isImage: ${isImageContent}`);
+    console.log(
+        `Main: Attempting to post message "${messageContent}" to channel ${channelId} by user ${userId}, isImage: ${isImageContent}`
+    );
     const { data, error } = await postMessage(messageContent, userId, channelId, token, isImageContent, repliedId);
 
     if (error) {
@@ -175,6 +177,24 @@ ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, is
     }
 
     console.log("Main: Message posted successfully");
+    return { data, error: null };
+});
+
+ipcMain.handle("delete-chat-message", async (_event, id) => {
+    const userData = store.get("userData");
+    if (!userData || !userData.access_token || !userData.user || !userData.user.id) {
+        console.error("Cannot delete message: User data, access token, or user ID not found.");
+        return { data: null, error: { message: "User not authenticated or user ID missing" } };
+    }
+
+    const { data, error } = await deleteMessage(id, userData.access_token);
+
+    if (error) {
+        console.error("Main: Failed to delete message:", error);
+        return { data: null, error };
+    }
+
+    console.log("Main: Message deleted successfully");
     return { data, error: null };
 });
 

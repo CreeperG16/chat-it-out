@@ -245,6 +245,55 @@ body {
   line-height: 1;
 }
 
+.message .reply-button,
+.message .delete-button {
+  position: absolute;
+  top: -5px; /* Consistent with original reply button style, adjust if needed */
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 14px; /* Matched to original reply button */
+  cursor: pointer;
+  z-index: 10;
+  line-height: 1; /* Matched to original reply button */
+  display: none; /* Hidden by default */
+}
+
+/* Individual positioning for the buttons */
+.message .reply-button {
+  right: 5px; /* Reply button on the far right */
+}
+
+.message .delete-button {
+  right: 35px; /* Delete button to the left of the reply button (adjust spacing as needed) */
+               /* Approx. 25px for reply button width + 5px gap */
+}
+
+/* Show buttons on message hover */
+.message:hover .reply-button,
+.message:hover .delete-button {
+  display: block; /* Or inline-block; block is fine for absolutely positioned items */
+}
+
+/* Hover effect for the buttons themselves */
+.message .reply-button:hover,
+.message .delete-button:hover {
+  background-color: rgba(255, 255, 255, 0.2); /* Consistent hover background */
+}
+
+.message:hover .reply-button,
+.message:hover .delete-button {
+  visibility: visible;
+  opacity: 1;
+}
+
+.reply-button:hover,
+.delete-button:hover {
+  color: #555; /* Darker color on hover */
+}
+
 .message:hover .reply-button {
   display: block; /* Show on hover */
 }
