@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 config();
 
-import { deleteMessage, getChannels, getMessages, getProfiles, postMessage } from "./lib/api.mjs";
+import { deleteMessage, getChannels, getMessages, getProfiles, postMessage, updateStatus } from "./lib/api.mjs";
 import { MessageSocket } from "./lib/socket.mjs";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "url";
@@ -19,6 +19,9 @@ console.log("Store path:", store.path); // Useful for debugging
 let messageSocket;
 let profilesMap = new Map();
 let mainWindow, loginWindow, chatWindow;
+
+let currentStatus = "online";
+let statusInterval = null;
 
 function createWindow(htmlPath, width = 800, height = 600) {
     const lastWindowState = store.get("lastWindowState", { width, height });
@@ -71,6 +74,7 @@ export function openChatWindow() {
     chatWindow = createWindow(path.join(__dirname, "windows/chat/index.html"), 1000, 700);
     chatWindow.on("closed", () => {
         chatWindow = null;
+        clearInterval(statusInterval);
     });
 
     // Close the local login window if it's open
@@ -224,6 +228,10 @@ ipcMain.handle("request-open-chat-window", () => {
 ipcMain.handle("join-chat-room", async (_event, roomId) => {
     if (messageSocket && roomId) {
         console.log(`Main: Joining room ${roomId}`);
+
+        currentStatus = `room:${roomId}`; // Update status
+        updateCurrentStatus();
+
         const result = await messageSocket.joinRoom(roomId);
         return { success: result.status === "ok", data: result };
     }
@@ -266,6 +274,25 @@ ipcMain.handle("upload-image", async (_event, imageDetails) => {
     console.log("Main: Image uploaded successfully:", response);
     return { success: true, data: response }; // Changed to return 'data'
 });
+
+async function updateCurrentStatus() {
+    const userData = store.get("userData");
+    const isTokenValid = checkStoredTokenValidity();
+    if (!isTokenValid) return { data: null, error: { message: "Token invalid!" } };
+
+    const { data, error } = await updateStatus({
+        status: currentStatus,
+        userId: userData.user.id,
+        token: userData.access_token,
+    });
+
+    if (error) {
+        console.error("Failed to update status:", error);
+        return { data: null, error };
+    }
+
+    return { data, error: null };
+}
 
 function checkStoredTokenValidity() {
     const userData = store.get("userData");
@@ -322,8 +349,12 @@ async function initApp() {
         messageSocket.on("message-delete", (...args) => emitRendererEvent(chatWindow, "message-delete", ...args));
 
         console.log("Main: MessageSocket initialized and connected.");
+
+        // Create status interval
+        updateCurrentStatus();
+        statusInterval = setInterval(() => updateCurrentStatus(), 30_000);
     } else {
-        console.error("Main: Could not initialize MessageSocket, user data or access token missing.");
+        console.error("Main: Could not initialize MessageSocket or status interval, user data or access token missing.");
     }
 
     // Fetch all profiles
