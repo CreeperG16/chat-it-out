@@ -1,14 +1,23 @@
 import { config } from "dotenv";
 config();
 
-import { deleteMessage, getChannels, getMessages, getProfiles, postMessage, updateStatus } from "./lib/api.mjs";
+import {
+    deleteMessage,
+    getChannels,
+    getMessages,
+    getProfiles,
+    postMessage,
+    respondToScreenshot,
+    updateStatus,
+} from "./lib/api.mjs";
 import { MessageSocket } from "./lib/socket.mjs";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "url";
 import Store from "electron-store";
 import path from "path";
 import { createAuthWindow } from "./windows/auth/main.mjs";
-import { uploadHashedImage } from "./lib/storage.mjs";
+import { uploadFile, uploadHashedImage } from "./lib/storage.mjs";
+import { randomUUID } from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -294,6 +303,53 @@ async function updateCurrentStatus() {
     return { data, error: null };
 }
 
+async function handleScreenshotRequest({ target_user }) {
+    const userData = store.get("userData");
+    if (!userData) {
+        console.error("No user (screenshot)");
+        return;
+    }
+
+    // no need to do anything if we aren't the target
+    if (target_user !== userData.user.id) return;
+
+    if (!chatWindow) {
+        console.error("No chat window!");
+        return;
+    }
+
+    const screenshot = chatWindow.webContents.capturePage();
+    const buffer = screenshot.toPNG();
+
+    const fileName = target_user.slice(0, 6) + "-" + randomUUID().slice(0, 6) + ".png";
+
+    // Upload to supabase storage
+    const { error } = await uploadFile({
+        data: buffer,
+        bucket: "screenshots",
+        storagePath: fileName,
+        accessToken: userData.access_token,
+        contentType: "image/png",
+    });
+
+    if (error) {
+        console.error("Failed to upload screenshot:", error);
+        return;
+    }
+
+    // send response
+    const { error: responseError } = await respondToScreenshot({
+        imageName: fileName,
+        targetUser: target_user,
+        token: userData.access_token,
+    });
+
+    if (responseError) {
+        console.error("Failed to respond to screenshot:", responseError);
+        return;
+    }
+}
+
 function checkStoredTokenValidity() {
     const userData = store.get("userData");
     const currentTime = Math.floor(Date.now() / 1000);
@@ -348,13 +404,22 @@ async function initApp() {
         messageSocket.on("message-create", (...args) => emitRendererEvent(chatWindow, "message-create", ...args));
         messageSocket.on("message-delete", (...args) => emitRendererEvent(chatWindow, "message-delete", ...args));
 
+        messageSocket.on("screenshot", (...args) => handleScreenshotRequest(...args));
+
+        const joinMainRes = await messageSocket.joinRoom("main");
+        if (joinMainRes.status !== "ok") {
+            console.error("Failed to join main realtime room:", joinMainRes);
+        }
+
         console.log("Main: MessageSocket initialized and connected.");
 
         // Create status interval
         updateCurrentStatus();
         statusInterval = setInterval(() => updateCurrentStatus(), 30_000);
     } else {
-        console.error("Main: Could not initialize MessageSocket or status interval, user data or access token missing.");
+        console.error(
+            "Main: Could not initialize MessageSocket or status interval, user data or access token missing."
+        );
     }
 
     // Fetch all profiles
