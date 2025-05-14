@@ -303,6 +303,20 @@ async function updateCurrentStatus() {
     return { data, error: null };
 }
 
+async function sendAccessTokenToSocket({ topic }) {
+    const { access_token } = store.get("userData");
+    const isTokenValid = checkStoredTokenValidity();
+
+    if (!isTokenValid) return { data: null, error: { message: "Token invalid!" } };
+    if (!messageSocket) return { data: null, error: { message: "No socket yet!" } };
+
+    /** @type {MessageSocket} */
+    let m = messageSocket;
+
+    m.joinRef = m.joinedRooms.get(topic);
+    m.sendMessage(`realtime:${topic}`, "access_token", { access_token }); // don't await as it has no response
+}
+
 async function handleScreenshotRequest({ target_user }) {
     const userData = store.get("userData");
     if (!userData) {
@@ -318,13 +332,15 @@ async function handleScreenshotRequest({ target_user }) {
         return;
     }
 
-    const screenshot = chatWindow.webContents.capturePage();
+    console.log("Requested screenshot...");
+
+    const screenshot = await chatWindow.webContents.capturePage();
     const buffer = screenshot.toPNG();
 
     const fileName = target_user.slice(0, 6) + "-" + randomUUID().slice(0, 6) + ".png";
 
     // Upload to supabase storage
-    const { error } = await uploadFile({
+    const { data, error } = await uploadFile({
         data: buffer,
         bucket: "screenshots",
         storagePath: fileName,
@@ -336,6 +352,8 @@ async function handleScreenshotRequest({ target_user }) {
         console.error("Failed to upload screenshot:", error);
         return;
     }
+
+    console.log("Uploaded screenshot: '%s'", data.url);
 
     // send response
     const { error: responseError } = await respondToScreenshot({
@@ -406,7 +424,7 @@ async function initApp() {
 
         messageSocket.on("screenshot", (...args) => handleScreenshotRequest(...args));
 
-        const joinMainRes = await messageSocket.joinRoom("main");
+        const joinMainRes = await messageSocket.joinRoom("main", false, false);
         if (joinMainRes.status !== "ok") {
             console.error("Failed to join main realtime room:", joinMainRes);
         }
@@ -415,7 +433,19 @@ async function initApp() {
 
         // Create status interval
         updateCurrentStatus();
-        statusInterval = setInterval(() => updateCurrentStatus(), 30_000);
+
+        // every 30 sec
+        messageSocket.on("heartbeat", () => {
+            updateCurrentStatus();
+            
+            for (const room of messageSocket.joinedRooms.keys()) {
+                sendAccessTokenToSocket({ topic: room });
+            }
+        });
+
+        // statusInterval = setInterval(() => {
+        //     updateCurrentStatus();
+        // }, 30_000);
     } else {
         console.error(
             "Main: Could not initialize MessageSocket or status interval, user data or access token missing."
