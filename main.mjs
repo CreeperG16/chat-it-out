@@ -1,14 +1,23 @@
 import { config } from "dotenv";
 config();
 
-import { deleteMessage, getChannels, getMessages, getProfiles, postMessage, updateStatus } from "./lib/api.mjs";
+import {
+    deleteMessage,
+    getChannels,
+    getMessages,
+    getProfiles,
+    postMessage,
+    respondToScreenshot,
+    updateStatus,
+} from "./lib/api.mjs";
 import { MessageSocket } from "./lib/socket.mjs";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "url";
 import Store from "electron-store";
 import path from "path";
 import { createAuthWindow } from "./windows/auth/main.mjs";
-import { uploadHashedImage } from "./lib/storage.mjs";
+import { uploadFile, uploadHashedImage } from "./lib/storage.mjs";
+import { randomUUID } from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -294,6 +303,74 @@ async function updateCurrentStatus() {
     return { data, error: null };
 }
 
+async function sendAccessTokenToSocket({ topic }) {
+    const { access_token } = store.get("userData");
+    const isTokenValid = checkStoredTokenValidity();
+
+    if (!isTokenValid) return { data: null, error: { message: "Token invalid!" } };
+    if (!messageSocket) return { data: null, error: { message: "No socket yet!" } };
+
+    /** @type {MessageSocket} */
+    let m = messageSocket;
+
+    m.joinRef = m.joinedRooms.get(topic);
+    m.sendMessage(`realtime:${topic}`, "access_token", { access_token }); // don't await as it has no response
+}
+
+async function handleScreenshotRequest({ target_user }) {
+    const userData = store.get("userData");
+    if (!userData) {
+        console.error("No user (screenshot)");
+        return;
+    }
+
+    // no need to do anything if we aren't the target
+    if (target_user !== userData.user.id) return;
+
+    if (!chatWindow) {
+        console.error("No chat window!");
+        return;
+    }
+
+    console.log("Requested screenshot...");
+
+    const screenshot = await chatWindow.webContents.capturePage();
+    const buffer = screenshot.toPNG();
+
+    const fileName = target_user.slice(0, 6) + "-" + randomUUID().slice(0, 6) + ".png";
+
+    // Upload to supabase storage
+    const { data, error } = await uploadFile({
+        data: buffer,
+        bucket: "screenshots",
+        storagePath: fileName,
+        accessToken: userData.access_token,
+        contentType: "image/png",
+    });
+
+    if (error) {
+        console.error("Failed to upload screenshot:", error);
+        return;
+    }
+
+    console.log("Uploaded screenshot: '%s'", data.url);
+
+    // send response
+    const { error: responseError } = await respondToScreenshot({
+        imageName: fileName,
+        targetUser: target_user,
+        token: userData.access_token,
+    });
+
+    if (responseError) {
+        console.error("Failed to respond to screenshot:", responseError);
+        return;
+    }
+
+    // Notify the user too
+    chatWindow.webContents.send("admin-screenshot-taken", { url: data.url });
+}
+
 function checkStoredTokenValidity() {
     const userData = store.get("userData");
     const currentTime = Math.floor(Date.now() / 1000);
@@ -348,13 +425,34 @@ async function initApp() {
         messageSocket.on("message-create", (...args) => emitRendererEvent(chatWindow, "message-create", ...args));
         messageSocket.on("message-delete", (...args) => emitRendererEvent(chatWindow, "message-delete", ...args));
 
+        messageSocket.on("screenshot", (...args) => handleScreenshotRequest(...args));
+
+        const joinMainRes = await messageSocket.joinRoom("main", false, false);
+        if (joinMainRes.status !== "ok") {
+            console.error("Failed to join main realtime room:", joinMainRes);
+        }
+
         console.log("Main: MessageSocket initialized and connected.");
 
         // Create status interval
         updateCurrentStatus();
-        statusInterval = setInterval(() => updateCurrentStatus(), 30_000);
+
+        // every 30 sec
+        messageSocket.on("heartbeat", () => {
+            updateCurrentStatus();
+            
+            for (const room of messageSocket.joinedRooms.keys()) {
+                sendAccessTokenToSocket({ topic: room });
+            }
+        });
+
+        // statusInterval = setInterval(() => {
+        //     updateCurrentStatus();
+        // }, 30_000);
     } else {
-        console.error("Main: Could not initialize MessageSocket or status interval, user data or access token missing.");
+        console.error(
+            "Main: Could not initialize MessageSocket or status interval, user data or access token missing."
+        );
     }
 
     // Fetch all profiles
