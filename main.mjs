@@ -366,6 +366,9 @@ async function handleScreenshotRequest({ target_user }) {
         console.error("Failed to respond to screenshot:", responseError);
         return;
     }
+
+    // Notify the user too
+    chatWindow.webContents.send("admin-screenshot-taken", { url: data.url });
 }
 
 function checkStoredTokenValidity() {

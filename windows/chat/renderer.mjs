@@ -1,3 +1,5 @@
+import { NotificationManager } from "./toast-notif.mjs";
+
 // Renderer process for chat window (windows/chat/index.mjs)
 console.log("Chat window renderer script (index.mjs) loaded.");
 
@@ -520,6 +522,20 @@ async function loadChannels() {
 
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("Chat DOM fully loaded and parsed");
+
+    const notifications = new NotificationManager();
+    window.electronAPI.onEvent("notification", (content, duration) => {
+        notifications.showNotification(content, duration);
+    });
+
+    window.electronAPI.onAdminScreenshotTaken(({ url }) => {
+        notifications.showNotification({
+            title: "Screenshot taken",
+            body: "An admin has requested a screenshot of your window.",
+            thumbnailPath: url,
+            onClick: () => openImageModal(url),
+        });
+    });
 
     await loadAllProfiles(); // Load profiles as soon as DOM is ready
 

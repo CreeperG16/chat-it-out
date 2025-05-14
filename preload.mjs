@@ -50,4 +50,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     // event
     onEvent: (eventName, callback) => ipcRenderer.on("event:" + eventName, (_ev, ...args) => callback(...args)),
+
+    // On screenshot taken (Admins can take screenshots of users' clients)
+    onAdminScreenshotTaken: (callback) => ipcRenderer.on("admin-screenshot-taken", (_ev, ...args) => callback(...args)),
 });
