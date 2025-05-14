@@ -334,7 +334,7 @@ async function initApp() {
             messageSocket.socket?.close();
         }
         messageSocket = new MessageSocket(userData.access_token);
-        messageSocket.connect();
+        await messageSocket.connect();
         messageSocket.onMessage = (message) => {
             // Forward to chat window if it exists
             if (chatWindow && !chatWindow.isDestroyed() && chatWindow.webContents) {
