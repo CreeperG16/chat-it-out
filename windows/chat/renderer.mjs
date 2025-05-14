@@ -540,7 +540,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadAllProfiles(); // Load profiles as soon as DOM is ready
 
     try {
-        const profile = await window.electronAPI.getStoreValue("currentUserProfile");
+        const profile = await window.electronAPI.getStoreValue("userProfile");
         updateUserProfileDisplay(profile);
     } catch (error) {
         console.error("Error fetching initial user profile:", error);

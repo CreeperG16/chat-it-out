@@ -102,7 +102,7 @@ ipcMain.handle("set-store-value", async (_ev, key, value) => store.set(key, valu
 ipcMain.handle("get-channels", async () => {
     const userData = store.get("userData");
     if (userData && userData.access_token) {
-        console.log("Fetching channels...");
+        // console.log("Fetching channels...");
         const { data: channels, error } = await getChannels(userData.access_token);
         if (error) {
             console.error("Failed to fetch channels:", error);
@@ -148,11 +148,11 @@ ipcMain.handle("get-all-profiles", async () => {
     }
 
     if (profilesMap.size > 0) {
-        console.log("Returning cached profiles.");
+        console.log("Profiles request: returning cached profiles.");
         return { data: Array.from(profilesMap.values()), error: null };
     }
 
-    console.log("Fetching all profiles...");
+    // console.log("Fetching all profiles...");
     const { data: profiles, error } = await getProfiles(userData.access_token);
     if (error) {
         console.error("Failed to fetch profiles:", error);
@@ -179,9 +179,9 @@ ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, is
     const userId = userData.user.id;
     const token = userData.access_token;
 
-    console.log(
-        `Main: Attempting to post message "${messageContent}" to channel ${channelId} by user ${userId}, isImage: ${isImageContent}`
-    );
+    // console.log(
+    //     `Main: Attempting to post message "${messageContent}" to channel ${channelId} by user ${userId}, isImage: ${isImageContent}`
+    // );
     const { data, error } = await postMessage(messageContent, userId, channelId, token, isImageContent, repliedId);
 
     if (error) {
@@ -189,7 +189,7 @@ ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, is
         return { data: null, error };
     }
 
-    console.log("Main: Message posted successfully");
+    // console.log("Main: Message posted successfully");
     return { data, error: null };
 });
 
@@ -207,7 +207,7 @@ ipcMain.handle("delete-chat-message", async (_event, id) => {
         return { data: null, error };
     }
 
-    console.log("Main: Message deleted successfully");
+    // console.log("Main: Message deleted successfully");
     return { data, error: null };
 });
 
@@ -236,7 +236,7 @@ ipcMain.handle("request-open-chat-window", () => {
 
 ipcMain.handle("join-chat-room", async (_event, roomId) => {
     if (messageSocket && roomId) {
-        console.log(`Main: Joining room ${roomId}`);
+        // console.log(`Main: Joining room ${roomId}`);
 
         currentStatus = `room:${roomId}`; // Update status
         updateCurrentStatus();
@@ -250,7 +250,7 @@ ipcMain.handle("join-chat-room", async (_event, roomId) => {
 
 ipcMain.handle("leave-chat-room", async (_event, roomId) => {
     if (messageSocket && roomId) {
-        console.log(`Main: Leaving room ${roomId}`);
+        // console.log(`Main: Leaving room ${roomId}`);
         const result = await messageSocket.leaveRoom(roomId);
         return { success: result.status === "ok", data: result };
     }
@@ -280,7 +280,7 @@ ipcMain.handle("upload-image", async (_event, imageDetails) => {
         console.error("Main: Error uploading image:", error);
         return { success: false, error };
     }
-    console.log("Main: Image uploaded successfully:", response);
+    // console.log("Main: Image uploaded successfully:", response);
     return { success: true, data: response }; // Changed to return 'data'
 });
 
@@ -332,7 +332,7 @@ async function handleScreenshotRequest({ target_user }) {
         return;
     }
 
-    console.log("Requested screenshot...");
+    // console.log("Requested screenshot...");
 
     const screenshot = await chatWindow.webContents.capturePage();
     const buffer = screenshot.toPNG();
@@ -380,7 +380,7 @@ function checkStoredTokenValidity() {
 }
 
 function emitRendererEvent(window, eventName, ...args) {
-    console.log("EVENT:", eventName, [...args]);
+    // console.log("EVENT:", eventName, [...args]);
     return window.webContents.send("event:" + eventName, ...args);
 }
 
@@ -394,7 +394,7 @@ async function initApp() {
 
         // delete all user data, effectively logging them out
         store.delete("userData"); // Delete expired user data
-        store.delete("currentUserProfile"); // Also delete profile
+        store.delete("userProfile"); // Also delete profile
         if (messageSocket) {
             messageSocket.socket?.close(); // Clean up existing socket if any
             messageSocket = null;
@@ -432,7 +432,7 @@ async function initApp() {
             console.error("Failed to join main realtime room:", joinMainRes);
         }
 
-        console.log("Main: MessageSocket initialized and connected.");
+        console.log("Main: MessageSocket initialised and connected.");
 
         // Create status interval
         updateCurrentStatus();
@@ -469,10 +469,10 @@ async function initApp() {
     const currentUser = profilesMap.get(userData.user.id);
     if (!currentUser) {
         console.log("No profile data found for the current user.");
-        store.delete("currentUserProfile");
+        store.delete("userProfile");
     } else {
         console.log("User profile fetched for '%s'", currentUser.username);
-        store.set("currentUserProfile", currentUser);
+        store.set("userProfile", currentUser);
     }
 
     return { isLoggedIn: true };
@@ -503,7 +503,7 @@ app.on("activate", async () => {
 
     // delete all user data, effectively logging the user out
     store.delete("userData"); // Delete expired user data
-    store.delete("currentUserProfile"); // Also delete profile
+    store.delete("userProfile"); // Also delete profile
 
     // Prompt a login
     createMainWindow();
