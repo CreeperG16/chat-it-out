@@ -38,6 +38,7 @@ function createWindow(htmlPath, width = 800, height = 600) {
     const win = new BrowserWindow({
         width: lastWindowState.width,
         height: lastWindowState.height,
+        icon: "./assets/chat-it-out.svg",
         webPreferences: {
             preload: path.join(__dirname, "preload.mjs"),
             contextIsolation: true,
@@ -300,6 +301,9 @@ async function updateCurrentStatus() {
         return { data: null, error };
     }
 
+    // console.log(data);
+    emitRendererEvent(chatWindow, "user-status-update", data);
+
     return { data, error: null };
 }
 
@@ -381,7 +385,70 @@ function checkStoredTokenValidity() {
 
 function emitRendererEvent(window, eventName, ...args) {
     // console.log("EVENT:", eventName, [...args]);
+    if (!window || window.isDestroyed() || !window.webContents) {
+        console.log("Attempted to emit '%s' but window or webContents does not exist.", eventName);
+        return;
+    }
     return window.webContents.send("event:" + eventName, ...args);
+}
+
+/**
+ * @param {string} userId
+ * @param {MessageSocket} socket
+ */
+async function initCustomStatus(userId, socket) {
+    if (!userId || !socket) return console.error("no user id or socket for custom status");
+
+    const joinRoomResult = await socket.joinRoom("chat-it-out", false, false, "chat-it-out");
+    if (joinRoomResult.status !== "ok") {
+        console.error("Failed to join custom status topic:", joinRoomResult);
+        return;
+    }
+
+    socket.on("presence-diff", (payload, topic) => {
+        if (topic !== "realtime:chat-it-out") return;
+
+        console.log("--- Presence update: ---");
+        // console.dir(payload);
+
+        const eventPayload = {
+            joins: [],
+            leaves: [],
+        };
+        if (payload.joins["chat-it-out"]) eventPayload.joins = payload.joins["chat-it-out"].metas.map((x) => x.id);
+        // console.log(
+        //     "JOINS:",
+        //     payload.joins["chat-it-out"].metas.map((x) => x.id)
+        // );
+
+        if (payload.leaves["chat-it-out"]) eventPayload.leaves = payload.leaves["chat-it-out"].metas.map((x) => x.id);
+        // console.log(
+        //     "LEAVES:",
+        //     payload.leaves["chat-it-out"].metas.map((x) => x.id)
+        // );
+
+        console.log(typeof chatWindow)
+
+        emitRendererEvent(chatWindow, "custom-presence-diff", eventPayload);
+        console.log("------------------------");
+
+        // TODO
+    });
+
+    const presenceTrackResult = await socket.sendMessage(
+        "realtime:chat-it-out",
+        "presence",
+        {
+            type: "presence",
+            event: "track",
+            payload: { id: userId },
+        },
+        true
+    );
+    if (presenceTrackResult.status !== "ok") {
+        console.error("Failed to track changes in custom status presence:", presenceTrackResult);
+        return;
+    }
 }
 
 async function initApp() {
@@ -406,21 +473,20 @@ async function initApp() {
 
     // Initialize MessageSocket if we have an access token
     if (userData && userData.access_token) {
-        if (messageSocket) {
-            // Close existing socket before creating a new one
-            messageSocket.socket?.close();
-        }
+        if (messageSocket) messageSocket.socket?.close();
         messageSocket = new MessageSocket(userData.access_token);
+
         await messageSocket.connect();
-        messageSocket.onMessage = (message) => {
-            // Forward to chat window if it exists
-            if (chatWindow && !chatWindow.isDestroyed() && chatWindow.webContents) {
-                // console.log("Main: Received message via socket, forwarding to chat window:", message);
-                chatWindow.webContents.send("new-message", message);
-            } else {
-                console.log("Main: Received message via socket, but chat window not available:", message);
-            }
-        };
+
+        // messageSocket.onMessage = (message) => {
+        //     // Forward to chat window if it exists
+        //     if (chatWindow && !chatWindow.isDestroyed() && chatWindow.webContents) {
+        //         // console.log("Main: Received message via socket, forwarding to chat window:", message);
+        //         chatWindow.webContents.send("new-message", message);
+        //     } else {
+
+        //     }
+        // };
 
         messageSocket.on("message-create", (...args) => emitRendererEvent(chatWindow, "message-create", ...args));
         messageSocket.on("message-delete", (...args) => emitRendererEvent(chatWindow, "message-delete", ...args));
@@ -432,6 +498,8 @@ async function initApp() {
             console.error("Failed to join main realtime room:", joinMainRes);
         }
 
+        // await initCustomStatus(userData.user.id, messageSocket);
+
         console.log("Main: MessageSocket initialised and connected.");
 
         // Create status interval
@@ -440,15 +508,11 @@ async function initApp() {
         // every 30 sec
         messageSocket.on("heartbeat", () => {
             updateCurrentStatus();
-            
+
             for (const room of messageSocket.joinedRooms.keys()) {
                 sendAccessTokenToSocket({ topic: room });
             }
         });
-
-        // statusInterval = setInterval(() => {
-        //     updateCurrentStatus();
-        // }, 30_000);
     } else {
         console.error(
             "Main: Could not initialize MessageSocket or status interval, user data or access token missing."
@@ -482,6 +546,11 @@ app.whenReady().then(async () => {
     const { isLoggedIn } = await initApp();
     if (isLoggedIn) {
         openChatWindow();
+
+        const userData = store.get("userData");
+        await initCustomStatus(userData.user.id, messageSocket); // TODO: move this somewhere else where it makes sense
+        await updateCurrentStatus();
+
         return;
     }
 

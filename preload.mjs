@@ -24,7 +24,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     sendChatMessage: (channelId, message, isImage, repliedId) => ipcRenderer.invoke("send-chat-message", channelId, message, isImage, repliedId),
     deleteChatMessage: (messageId) => ipcRenderer.invoke("delete-chat-message", messageId),
-    onNewMessage: (callback) => ipcRenderer.on("new-message", (_event, value) => callback(value)), // Added
     joinChatRoom: (roomId) => ipcRenderer.invoke("join-chat-room", roomId), // Added
     leaveChatRoom: (roomId) => ipcRenderer.invoke("leave-chat-room", roomId), // Added
 
