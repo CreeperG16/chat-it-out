@@ -10,7 +10,8 @@
     },
     "scripts": {
         "start": "electron . --ozone-platform=wayland",
-        "build": "electron-builder build -wl"
+        "build-linux": "electron-builder build -l",
+        "build-win": "electron-builder build -w"
     },
     "license": "MIT",
     "devDependencies": {
