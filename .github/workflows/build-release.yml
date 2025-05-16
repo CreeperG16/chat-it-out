@@ -25,7 +25,7 @@ jobs:
             - name: Upload Linux Artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: linux-build
+                  name: chat-it-out.AppImage
                   path: dist/chat-it-out.AppImage
 
     build-windows:
@@ -44,7 +44,7 @@ jobs:
             - name: Upload Windows Artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: windows-build
+                  name: chat-it-out.exe
                   path: dist/chat-it-out.exe
 
     release:
@@ -56,12 +56,12 @@ jobs:
             - name: Download Linux Artifact
               uses: actions/download-artifact@v4
               with:
-                  name: linux-build
+                  name: chat-it-out.AppImage
                   path: dist/
             - name: Download Windows Artifact
               uses: actions/download-artifact@v4
               with:
-                  name: windows-build
+                  name: chat-it-out.exe
                   path: dist/
             - name: Create Release and Upload Assets
               uses: softprops/action-gh-release@v2
