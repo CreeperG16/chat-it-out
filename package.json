@@ -10,8 +10,8 @@
     },
     "scripts": {
         "start": "electron . --ozone-platform=wayland",
-        "build-linux": "electron-builder build -l",
-        "build-win": "electron-builder build -w"
+        "build-linux": "electron-builder build -l --publish=never",
+        "build-win": "electron-builder build -w --publish=never"
     },
     "repository": {
         "type": "git",
