@@ -5,6 +5,9 @@ on:
         tags:
             - "v*.*.*"
 
+env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
     build-linux:
         runs-on: ubuntu-latest
@@ -66,5 +69,3 @@ jobs:
                   files: |
                       dist/chat-it-out.AppImage
                       dist/chat-it-out.exe
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
