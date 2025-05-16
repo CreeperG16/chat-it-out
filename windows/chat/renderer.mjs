@@ -1,4 +1,5 @@
 import { NotificationManager } from "./toast-notif.mjs";
+import { User, UserManager } from "./user-manager.mjs";
 
 // Renderer process for chat window (windows/chat/index.mjs)
 console.log("Chat window renderer script (index.mjs) loaded.");
@@ -15,6 +16,8 @@ let currentChannelId = null; // Added to keep track of the current channel
 let uploadedImageUrl = null; // To store the URL of the image to be sent
 let currentChannelMessagesMap = new Map(); // To store messages of the current channel by ID
 let replyingToMessage = null; // To store the message object being replied to
+
+const users = new UserManager();
 
 // Function to update the reply preview bar
 function updateReplyPreviewBar() {
@@ -69,6 +72,9 @@ async function loadAllProfiles() {
 
         profilesMap = new Map(profiles.map((p) => [p.id, p]));
         console.log("Renderer: All profiles loaded and cached:", profilesMap);
+
+        console.log("Populating user manager...");
+        users.setUsers(profiles);
     } catch (err) {
         console.error("Renderer: Exception while fetching all profiles:", err);
     }
@@ -123,7 +129,7 @@ function renderMessageItem(message) {
         return;
     }
 
-    const profile = authorId ? profilesMap.get(authorId) : null;
+    const user = users.getUser(authorId);
 
     const messageDiv = document.createElement("div");
     messageDiv.classList.add("message");
@@ -169,10 +175,8 @@ function renderMessageItem(message) {
     });
     messageDiv.appendChild(deleteButton);
 
-    const avatarImg = document.createElement("img");
-    avatarImg.classList.add("avatar");
-    avatarImg.src = (profile && profile.avatar_url) || defaultAvatar;
-    avatarImg.alt = profile ? `${profile.username}'s Avatar` : "Avatar";
+    const avatarImg = user.renderAvatar();
+    // avatarImg.classList.add("avatar");
     messageDiv.appendChild(avatarImg);
 
     const messageBodyDiv = document.createElement("div");
@@ -230,9 +234,8 @@ function renderMessageItem(message) {
     const messageHeaderDiv = document.createElement("div");
     messageHeaderDiv.classList.add("message-header");
 
-    const authorSpan = document.createElement("span");
+    const authorSpan = user.renderUsername();
     authorSpan.classList.add("message-author");
-    authorSpan.textContent = (profile && profile.username) || "Unknown User";
     messageHeaderDiv.appendChild(authorSpan);
 
     const timestampSpan = document.createElement("span");
@@ -526,6 +529,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     const notifications = new NotificationManager();
     window.electronAPI.onEvent("notification", (content, duration) => {
         notifications.showNotification(content, duration);
+    });
+
+    window.electronAPI.onEvent("custom-presence-diff", ({ joins, leaves }) => {
+        for (const joiningUserId of joins) {
+            const user = users.getUser(joiningUserId);
+            if (!user) console.warn("No profile found for the joining user"); // TODO: refetch
+            user.isChatItOut = true;
+        }
+
+        for (const leavingUserId of leaves) {
+            const user = users.getUser(leavingUserId);
+            if (!user) console.warn("No profile found for the leaving user"); // TODO
+            user.isChatItOut = false;
+        }
+    });
+
+    window.electronAPI.onEvent("user-status-update", (profiles) => {
+        console.log("USER STATUS UPDATE", profiles);
+
+        for (const user of users.getUsers()) {
+            const profile = profiles.find((p) => p.id === user.id);
+            if (profile) {
+                user.updateData(profile);
+                user.status.online = true;
+            } else {
+                user.status.online = false;
+            }
+        }
     });
 
     window.electronAPI.onAdminScreenshotTaken(({ url }) => {

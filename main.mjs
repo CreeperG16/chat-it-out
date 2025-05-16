@@ -10,7 +10,7 @@ import {
     respondToScreenshot,
     updateStatus,
 } from "./lib/api.mjs";
-import { MessageSocket } from "./lib/socket.mjs";
+import { MessageSocket, RealtimeSocket } from "./lib/socket.mjs";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "url";
 import Store from "electron-store";
@@ -25,7 +25,8 @@ const __dirname = path.dirname(__filename);
 const store = new Store();
 console.log("Store path:", store.path); // Useful for debugging
 
-let messageSocket;
+const realtime = new RealtimeSocket();
+
 let profilesMap = new Map();
 let mainWindow, loginWindow, chatWindow;
 
@@ -38,6 +39,7 @@ function createWindow(htmlPath, width = 800, height = 600) {
     const win = new BrowserWindow({
         width: lastWindowState.width,
         height: lastWindowState.height,
+        icon: "./assets/chat-it-out.svg",
         webPreferences: {
             preload: path.join(__dirname, "preload.mjs"),
             contextIsolation: true,
@@ -235,27 +237,30 @@ ipcMain.handle("request-open-chat-window", () => {
 });
 
 ipcMain.handle("join-chat-room", async (_event, roomId) => {
-    if (messageSocket && roomId) {
-        // console.log(`Main: Joining room ${roomId}`);
-
-        currentStatus = `room:${roomId}`; // Update status
-        updateCurrentStatus();
-
-        const result = await messageSocket.joinRoom(roomId);
-        return { success: result.status === "ok", data: result };
+    if (realtime.isDestroyed()) {
+        console.error("Main: Could not join room. Socket is destroyed.");
+        return { success: false, error: "Socket is not available to send." };
     }
-    console.error("Main: Could not join room. Socket or roomId missing.", { hasSocket: !!messageSocket, roomId });
-    return { success: false, error: "Socket not initialized or roomId missing" };
+
+    currentStatus = `room:${roomId}`;
+    updateCurrentStatus();
+
+    const result = await realtime.joinChannel({
+        channelId: `room:${roomId}`,
+        isPrivate: true,
+    });
+
+    return result;
 });
 
 ipcMain.handle("leave-chat-room", async (_event, roomId) => {
-    if (messageSocket && roomId) {
-        // console.log(`Main: Leaving room ${roomId}`);
-        const result = await messageSocket.leaveRoom(roomId);
-        return { success: result.status === "ok", data: result };
+    if (realtime.isDestroyed()) {
+        console.error("Main: Could not leave room. Socket is destroyed.");
+        return { success: false, error: "Socket is not available to send." };
     }
-    console.error("Main: Could not leave room. Socket or roomId missing.");
-    return { success: false, error: "Socket not initialized or roomId missing" };
+
+    const result = await realtime.leaveChannel({ channelId: `room:${roomId}` });
+    return result;
 });
 
 // Modified to accept a single object with image details
@@ -300,6 +305,9 @@ async function updateCurrentStatus() {
         return { data: null, error };
     }
 
+    // console.log(data);
+    emitRendererEvent(chatWindow, "user-status-update", data);
+
     return { data, error: null };
 }
 
@@ -308,13 +316,14 @@ async function sendAccessTokenToSocket({ topic }) {
     const isTokenValid = checkStoredTokenValidity();
 
     if (!isTokenValid) return { data: null, error: { message: "Token invalid!" } };
-    if (!messageSocket) return { data: null, error: { message: "No socket yet!" } };
+    if (realtime.isDestroyed()) return { data: null, error: { message: "No socket yet!" } };
 
-    /** @type {MessageSocket} */
-    let m = messageSocket;
-
-    m.joinRef = m.joinedRooms.get(topic);
-    m.sendMessage(`realtime:${topic}`, "access_token", { access_token }); // don't await as it has no response
+    // don't await as it has no response
+    realtime.sendMessage({
+        topic: `realtime:${topic}`,
+        event: "access_token",
+        payload: { access_token },
+    });
 }
 
 async function handleScreenshotRequest({ target_user }) {
@@ -381,7 +390,71 @@ function checkStoredTokenValidity() {
 
 function emitRendererEvent(window, eventName, ...args) {
     // console.log("EVENT:", eventName, [...args]);
+    if (!window || window.isDestroyed() || !window.webContents) {
+        console.log("Attempted to emit '%s' but window or webContents does not exist.", eventName);
+        return;
+    }
     return window.webContents.send("event:" + eventName, ...args);
+}
+
+/**
+ * TODO: rewrite this to use RealtimeSocket
+ * @param {string} userId
+ * @param {MessageSocket} socket
+ */
+async function initCustomStatus(userId, socket) {
+    if (!userId || !socket) return console.error("no user id or socket for custom status");
+
+    const joinRoomResult = await socket.joinRoom("chat-it-out", false, false, "chat-it-out");
+    if (joinRoomResult.status !== "ok") {
+        console.error("Failed to join custom status topic:", joinRoomResult);
+        return;
+    }
+
+    socket.on("presence-diff", (payload, topic) => {
+        if (topic !== "realtime:chat-it-out") return;
+
+        console.log("--- Presence update: ---");
+        // console.dir(payload);
+
+        const eventPayload = {
+            joins: [],
+            leaves: [],
+        };
+        if (payload.joins["chat-it-out"]) eventPayload.joins = payload.joins["chat-it-out"].metas.map((x) => x.id);
+        // console.log(
+        //     "JOINS:",
+        //     payload.joins["chat-it-out"].metas.map((x) => x.id)
+        // );
+
+        if (payload.leaves["chat-it-out"]) eventPayload.leaves = payload.leaves["chat-it-out"].metas.map((x) => x.id);
+        // console.log(
+        //     "LEAVES:",
+        //     payload.leaves["chat-it-out"].metas.map((x) => x.id)
+        // );
+
+        console.log(typeof chatWindow, eventPayload);
+
+        emitRendererEvent(chatWindow, "custom-presence-diff", eventPayload);
+        console.log("------------------------");
+
+        // TODO
+    });
+
+    const presenceTrackResult = await socket.sendMessage(
+        "realtime:chat-it-out",
+        "presence",
+        {
+            type: "presence",
+            event: "track",
+            payload: { id: userId },
+        },
+        true
+    );
+    if (presenceTrackResult.status !== "ok") {
+        console.error("Failed to track changes in custom status presence:", presenceTrackResult);
+        return;
+    }
 }
 
 async function initApp() {
@@ -395,10 +468,9 @@ async function initApp() {
         // delete all user data, effectively logging them out
         store.delete("userData"); // Delete expired user data
         store.delete("userProfile"); // Also delete profile
-        if (messageSocket) {
-            messageSocket.socket?.close(); // Clean up existing socket if any
-            messageSocket = null;
-        }
+
+        if (!realtime.isDestroyed()) await realtime.close();
+
         return { isLoggedIn: false };
     }
 
@@ -406,49 +478,26 @@ async function initApp() {
 
     // Initialize MessageSocket if we have an access token
     if (userData && userData.access_token) {
-        if (messageSocket) {
-            // Close existing socket before creating a new one
-            messageSocket.socket?.close();
-        }
-        messageSocket = new MessageSocket(userData.access_token);
-        await messageSocket.connect();
-        messageSocket.onMessage = (message) => {
-            // Forward to chat window if it exists
-            if (chatWindow && !chatWindow.isDestroyed() && chatWindow.webContents) {
-                // console.log("Main: Received message via socket, forwarding to chat window:", message);
-                chatWindow.webContents.send("new-message", message);
-            } else {
-                console.log("Main: Received message via socket, but chat window not available:", message);
-            }
-        };
+        if (!realtime.isDestroyed()) await realtime.close();
+        await realtime.connect(userData.access_token);
 
-        messageSocket.on("message-create", (...args) => emitRendererEvent(chatWindow, "message-create", ...args));
-        messageSocket.on("message-delete", (...args) => emitRendererEvent(chatWindow, "message-delete", ...args));
+        realtime.on("message-create", ({ payload }) => emitRendererEvent(chatWindow, "message-create", payload));
+        realtime.on("message-delete", ({ payload }) => emitRendererEvent(chatWindow, "message-delete", payload));
+        realtime.on("screenshot", ({ payload }) => handleScreenshotRequest(payload));
 
-        messageSocket.on("screenshot", (...args) => handleScreenshotRequest(...args));
-
-        const joinMainRes = await messageSocket.joinRoom("main", false, false);
-        if (joinMainRes.status !== "ok") {
-            console.error("Failed to join main realtime room:", joinMainRes);
-        }
-
-        console.log("Main: MessageSocket initialised and connected.");
-
-        // Create status interval
-        updateCurrentStatus();
-
-        // every 30 sec
-        messageSocket.on("heartbeat", () => {
+        realtime.on("heartbeat", () => {
             updateCurrentStatus();
-            
-            for (const room of messageSocket.joinedRooms.keys()) {
+            for (const room of realtime.channels.keys()) {
                 sendAccessTokenToSocket({ topic: room });
             }
         });
 
-        // statusInterval = setInterval(() => {
-        //     updateCurrentStatus();
-        // }, 30_000);
+        const joinMainResult = await realtime.joinChannel({ channelId: "main", presenceKey: "chat-it-out" });
+        if (!joinMainResult.success) {
+            console.error("Failed to join 'main' realtime channel:", joinMainResult);
+        }
+
+        await updateCurrentStatus();
     } else {
         console.error(
             "Main: Could not initialize MessageSocket or status interval, user data or access token missing."
@@ -482,6 +531,13 @@ app.whenReady().then(async () => {
     const { isLoggedIn } = await initApp();
     if (isLoggedIn) {
         openChatWindow();
+
+        // TODO: move this somewhere else where it makes sense
+        // const userData = store.get("userData");
+        // await initCustomStatus(userData.user.id, messageSocket);
+        
+        await updateCurrentStatus();
+
         return;
     }
 
