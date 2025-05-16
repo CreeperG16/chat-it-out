@@ -27,7 +27,6 @@ console.log("Store path:", store.path); // Useful for debugging
 
 const realtime = new RealtimeSocket();
 
-// let messageSocket;
 let profilesMap = new Map();
 let mainWindow, loginWindow, chatWindow;
 
@@ -252,18 +251,6 @@ ipcMain.handle("join-chat-room", async (_event, roomId) => {
     });
 
     return result;
-
-    // if (messageSocket && roomId) {
-    //     // console.log(`Main: Joining room ${roomId}`);
-
-    //     currentStatus = `room:${roomId}`; // Update status
-    //     updateCurrentStatus();
-
-    //     const result = await messageSocket.joinRoom(roomId);
-    //     return { success: result.status === "ok", data: result };
-    // }
-    // console.error("Main: Could not join room. Socket or roomId missing.", { hasSocket: !!messageSocket, roomId });
-    // return { success: false, error: "Socket not initialized or roomId missing" };
 });
 
 ipcMain.handle("leave-chat-room", async (_event, roomId) => {
@@ -274,14 +261,6 @@ ipcMain.handle("leave-chat-room", async (_event, roomId) => {
 
     const result = await realtime.leaveChannel({ channelId: `room:${roomId}` });
     return result;
-
-    // if (messageSocket && roomId) {
-    //     // console.log(`Main: Leaving room ${roomId}`);
-    //     const result = await messageSocket.leaveRoom(roomId);
-    //     return { success: result.status === "ok", data: result };
-    // }
-    // console.error("Main: Could not leave room. Socket or roomId missing.");
-    // return { success: false, error: "Socket not initialized or roomId missing" };
 });
 
 // Modified to accept a single object with image details
@@ -419,6 +398,7 @@ function emitRendererEvent(window, eventName, ...args) {
 }
 
 /**
+ * TODO: rewrite this to use RealtimeSocket
  * @param {string} userId
  * @param {MessageSocket} socket
  */
@@ -491,11 +471,6 @@ async function initApp() {
 
         if (!realtime.isDestroyed()) await realtime.close();
 
-        // if (messageSocket) {
-        //     messageSocket.socket?.close(); // Clean up existing socket if any
-        //     messageSocket = null;
-        // }
-
         return { isLoggedIn: false };
     }
 
@@ -523,47 +498,6 @@ async function initApp() {
         }
 
         await updateCurrentStatus();
-
-        // if (messageSocket) messageSocket.socket?.close();
-        // messageSocket = new MessageSocket(userData.access_token);
-
-        // await messageSocket.connect();
-
-        // messageSocket.onMessage = (message) => {
-        //     // Forward to chat window if it exists
-        //     if (chatWindow && !chatWindow.isDestroyed() && chatWindow.webContents) {
-        //         // console.log("Main: Received message via socket, forwarding to chat window:", message);
-        //         chatWindow.webContents.send("new-message", message);
-        //     } else {
-
-        //     }
-        // };
-
-        // messageSocket.on("message-create", (...args) => emitRendererEvent(chatWindow, "message-create", ...args));
-        // messageSocket.on("message-delete", (...args) => emitRendererEvent(chatWindow, "message-delete", ...args));
-
-        // messageSocket.on("screenshot", (...args) => handleScreenshotRequest(...args));
-
-        // const joinMainRes = await messageSocket.joinRoom("main", false, false);
-        // if (joinMainRes.status !== "ok") {
-        //     console.error("Failed to join main realtime room:", joinMainRes);
-        // }
-
-        // // await initCustomStatus(userData.user.id, messageSocket);
-
-        // console.log("Main: MessageSocket initialised and connected.");
-
-        // // Create status interval
-        // updateCurrentStatus();
-
-        // // every 30 sec
-        // messageSocket.on("heartbeat", () => {
-        //     updateCurrentStatus();
-
-        //     for (const room of messageSocket.joinedRooms.keys()) {
-        //         sendAccessTokenToSocket({ topic: room });
-        //     }
-        // });
     } else {
         console.error(
             "Main: Could not initialize MessageSocket or status interval, user data or access token missing."
