@@ -546,13 +546,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     window.electronAPI.onEvent("user-status-update", (profiles) => {
-        for (const profile of profiles) {
-            const user = users.getUser(profile.id);
-            if (!user) continue; // TODO
-            // users.setUsers([new User(profile)]);
+        console.log("USER STATUS UPDATE", profiles);
+        // for (const profile of profiles) {
+        //     const user = users.getUser(profile.id);
+        //     if (!user) continue; // TODO
+        //     // users.setUsers([new User(profile)]);
 
-            user.updateData(profile);
-            user.status.online = true;
+        //     user.updateData(profile);
+        //     user.status.online = true;
+        // }
+
+        for (const user of users.getUsers()) {
+            const profile = profiles.find((p) => p.id === user.id);
+            if (profile) {
+                user.updateData(profile);
+                user.status.online = true;
+            } else {
+                user.status.online = false;
+            }
         }
     });
 

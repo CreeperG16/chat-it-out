@@ -119,6 +119,13 @@ export class UserManager {
     }
 
     /**
+     * @returns {User[]}
+     */
+    getUsers() {
+        return [...this.users.values()];
+    }
+
+    /**
      * @returns {number}
      */
     userCount() {
