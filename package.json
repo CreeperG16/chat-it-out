@@ -13,6 +13,10 @@
         "build-linux": "electron-builder build -l",
         "build-win": "electron-builder build -w"
     },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/CreeperG16/chat-it-out.git"
+    },
     "license": "MIT",
     "devDependencies": {
         "electron": "^36.2.0",
