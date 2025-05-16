@@ -23,7 +23,6 @@
         "electron-builder": "^26.0.12"
     },
     "dependencies": {
-        "dotenv": "^16.5.0",
         "electron-store": "^10.0.1",
         "form-data": "^4.0.2",
         "ws": "^8.18.2"
@@ -32,13 +31,17 @@
         "appId": "chat-it-out",
         "linux": {
             "category": "InstantMessaging",
-            "target": ["appimage"]
+            "target": [
+                "appimage"
+            ]
         },
         "appImage": {
             "artifactName": "chat-it-out.AppImage"
         },
         "win": {
-            "target": ["portable"]
+            "target": [
+                "portable"
+            ]
         },
         "portable": {
             "artifactName": "chat-it-out.exe"
