@@ -25,18 +25,18 @@ export class User {
     }
 
     updateData(profile) {
-        this.id = profile.id;
-        this.name = profile.username;
-        this.isAdmin = profile.admin;
-        this.displayColour = profile.display_colour;
-        this.avatar = profile.avatar_url;
-        this.avatarBorderColour = profile.border_colour;
-        this.bio = profile.bio;
+        /** @type {string} */ this.id = profile.id;
+        /** @type {string} */ this.name = profile.username;
+        /** @type {boolean} */ this.isAdmin = profile.admin;
+        /** @type {string} */ this.displayColour = profile.display_colour;
+        /** @type {string} */ this.avatar = profile.avatar_url;
+        /** @type {string} */ this.avatarBorderColour = profile.border_colour;
+        /** @type {string} */ this.bio = profile.bio;
 
         this.status = {
             online: false,
-            value: profile.status,
-            lastUpdated: profile.status_last_updated,
+            /** @type {string} */ value: profile.status,
+            lastUpdated: new Date(profile.status_last_updated),
         };
 
         this.flags = profile.flags; // TODO

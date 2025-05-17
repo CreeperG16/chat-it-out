@@ -1,5 +1,6 @@
+import { MessageManager } from "./message-manager.mjs";
 import { NotificationManager } from "./toast-notif.mjs";
-import { User, UserManager } from "./user-manager.mjs";
+import { UserManager } from "./user-manager.mjs";
 
 // Renderer process for chat window (windows/chat/index.mjs)
 console.log("Chat window renderer script (index.mjs) loaded.");
@@ -10,16 +11,18 @@ const defaultAvatar = "../../assets/person.svg"; // Path to your default avatar
 const channelListElement = document.querySelector(".channel-list");
 let hiddenChannelsListElement = null; // To store the UL for hidden channels
 let hiddenChannelsToggleElement = null; // To store the toggle element
-const messageListElement = document.querySelector(".message-list"); // Get message list element
 let profilesMap = new Map(); // To store user profiles
 let currentChannelId = null; // Added to keep track of the current channel
 let uploadedImageUrl = null; // To store the URL of the image to be sent
 let currentChannelMessagesMap = new Map(); // To store messages of the current channel by ID
 let replyingToMessage = null; // To store the message object being replied to
 
+const notifications = new NotificationManager(); // Toast notifications in the top right
 const users = new UserManager();
+const messages = new MessageManager(users);
 
 // Function to update the reply preview bar
+// TODO: InputManager class to handle these sorts of things
 function updateReplyPreviewBar() {
     const replyPreviewBar = document.getElementById("reply-preview-bar");
     const chatInputArea = document.querySelector(".chat-input-area");
@@ -27,17 +30,20 @@ function updateReplyPreviewBar() {
     if (!replyPreviewBar || !chatInputArea) return;
 
     if (replyingToMessage) {
-        const authorProfile = profilesMap.get(replyingToMessage.author_id);
-        const authorName = (authorProfile && authorProfile.username) || "Unknown User";
-        let contentSnippet = replyingToMessage.content || "";
-        if (replyingToMessage.is_image_content) {
-            contentSnippet = "Image";
-        }
+        // const authorProfile = profilesMap.get(replyingToMessage.author_id);
+        // const authorName = (authorProfile && authorProfile.username) || "Unknown User";
+        // let contentSnippet = replyingToMessage.content || "";
+        // if (replyingToMessage.is_image_content) {
+        //     contentSnippet = "Image";
+        // }
+
+        const message = messages.getMessage(replyingToMessage);
+        let contentSnippet = message.content.type === "image" ? "Image" : message.content.text;
         contentSnippet = contentSnippet.substring(0, 100) + (contentSnippet.length > 100 ? "..." : "");
 
         replyPreviewBar.innerHTML = `
             <div class="reply-preview-content">
-                <span class="reply-preview-label">Replying to ${authorName}:</span>
+                <span class="reply-preview-label">Replying to ${message.author.name}:</span>
                 <span class="reply-preview-snippet">${contentSnippet}</span>
             </div>
             <button class="cancel-reply-button" id="cancel-reply-btn" aria-label="Cancel reply">&times;</button>
@@ -108,164 +114,184 @@ function formatTimestamp(isoString) {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function renderSystemEventItem(message) {
-    if (!messageListElement) return;
-    const eventDiv = document.createElement("div");
-    eventDiv.classList.add("system-event");
+// function renderSystemEventItem(message) {
+//     if (!messageListElement) return;
+//     const eventDiv = document.createElement("div");
+//     eventDiv.classList.add("system-event");
 
-    const contentParagraph = document.createElement("p");
-    contentParagraph.textContent = message.content || "";
-    eventDiv.appendChild(contentParagraph);
+//     const contentParagraph = document.createElement("p");
+//     contentParagraph.textContent = message.content || "";
+//     eventDiv.appendChild(contentParagraph);
 
-    messageListElement.appendChild(eventDiv);
-}
+//     messageListElement.appendChild(eventDiv);
+// }
 
-function renderMessageItem(message) {
-    if (!messageListElement) return;
+// function renderMessageItem(message) {
+//     if (!messageListElement) return;
 
-    const authorId = message.author_id || (message.author && message.author.id) || null;
-    if (authorId === null) {
-        renderSystemEventItem(message);
-        return;
-    }
+//     const msg = new Message(message, users);
+//     const element = msg.render();
 
-    const user = users.getUser(authorId);
+//     if (msg.content.type === "image") {
+//         const img = element.querySelector("img.message-image");
+//         img.addEventListener("click", () => openImageModal(msg.content.imageUrl));
+//     }
 
-    const messageDiv = document.createElement("div");
-    messageDiv.classList.add("message");
-    messageDiv.dataset.messageId = message.id; // Store message ID for easy access
+//     // if (msg.content.type === "text") {
+//     //     element.addEventListener("click", () => {
+//     //         msg.content.text += " ABC";
+//     //         msg.author.status.online = !msg.author.status.online
+//     //         msg.render();
+//     //     });
+//     // }
 
-    // Add reply button (initially hidden, shown on hover)
-    const replyButton = document.createElement("button");
-    replyButton.classList.add("reply-button");
-    replyButton.innerHTML = "&#x21A9;"; // Reply arrow symbol
-    replyButton.setAttribute("aria-label", "Reply to this message");
-    replyButton.title = "Reply";
-    replyButton.addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent message click event if any
-        replyingToMessage = currentChannelMessagesMap.get(message.id);
-        updateReplyPreviewBar();
-        document.querySelector(".message-input").focus(); // Focus input
-    });
-    messageDiv.appendChild(replyButton);
+//     messageListElement.appendChild(element);
 
-    // Add delete button (initially hidden, shown on hover)
-    const deleteButton = document.createElement("button");
-    deleteButton.classList.add("delete-button");
-    deleteButton.innerHTML = "&#x1F5D1;"; // Trash can icon
-    deleteButton.setAttribute("aria-label", "Delete this message");
-    deleteButton.title = "Delete";
-    deleteButton.addEventListener("click", async (e) => {
-        e.stopPropagation(); // Prevent message click event if any
-        try {
-            console.log(`Renderer: Attempting to delete message with ID: ${message.id}`);
-            const result = await window.electronAPI.deleteChatMessage(message.id);
-            if (result && result.error) {
-                console.error("Renderer: Error deleting message:", result.error);
-                // Optionally, show an error to the user
-                alert(`Failed to delete message: ${result.error.message || JSON.stringify(result.error)}`);
-            } else {
-                console.log(`Renderer: Message ${message.id} delete request sent.`);
-                // The message-delete event handler will remove it from the view
-            }
-        } catch (error) {
-            console.error("Renderer: Exception calling deleteChatMessage:", error);
-            alert(`Error deleting message: ${error.message}`);
-        }
-    });
-    messageDiv.appendChild(deleteButton);
+//     return;
 
-    const avatarImg = user.renderAvatar();
-    // avatarImg.classList.add("avatar");
-    messageDiv.appendChild(avatarImg);
+//     const authorId = message.author_id || (message.author && message.author.id) || null;
+//     if (authorId === null) {
+//         renderSystemEventItem(message);
+//         return;
+//     }
 
-    const messageBodyDiv = document.createElement("div");
-    messageBodyDiv.classList.add("message-body");
+//     const user = users.getUser(authorId);
 
-    // Handle replied messages
-    if (message.replied_message_id) {
-        const originalMessage = currentChannelMessagesMap.get(message.replied_message_id);
+//     const messageDiv = document.createElement("div");
+//     messageDiv.classList.add("message");
+//     messageDiv.dataset.messageId = message.id; // Store message ID for easy access
 
-        if (originalMessage) {
-            const repliedMessageDiv = document.createElement("div");
-            repliedMessageDiv.classList.add("replied-message-preview");
+//     // Add reply button (initially hidden, shown on hover)
+//     const replyButton = document.createElement("button");
+//     replyButton.classList.add("reply-button");
+//     replyButton.innerHTML = "&#x21A9;"; // Reply arrow symbol
+//     replyButton.setAttribute("aria-label", "Reply to this message");
+//     replyButton.title = "Reply";
+//     replyButton.addEventListener("click", (e) => {
+//         e.stopPropagation(); // Prevent message click event if any
+//         replyingToMessage = currentChannelMessagesMap.get(message.id);
+//         updateReplyPreviewBar();
+//         document.querySelector(".message-input").focus(); // Focus input
+//     });
+//     messageDiv.appendChild(replyButton);
 
-            const originalAuthorProfile = profilesMap.get(originalMessage.author_id);
-            const originalAuthorName = (originalAuthorProfile && originalAuthorProfile.username) || "Unknown User";
+//     // Add delete button (initially hidden, shown on hover)
+//     const deleteButton = document.createElement("button");
+//     deleteButton.classList.add("delete-button");
+//     deleteButton.innerHTML = "&#x1F5D1;"; // Trash can icon
+//     deleteButton.setAttribute("aria-label", "Delete this message");
+//     deleteButton.title = "Delete";
+//     deleteButton.addEventListener("click", async (e) => {
+//         e.stopPropagation(); // Prevent message click event if any
+//         try {
+//             console.log(`Renderer: Attempting to delete message with ID: ${message.id}`);
+//             const result = await window.electronAPI.deleteChatMessage(message.id);
+//             if (result && result.error) {
+//                 console.error("Renderer: Error deleting message:", result.error);
+//                 // Optionally, show an error to the user
+//                 alert(`Failed to delete message: ${result.error.message || JSON.stringify(result.error)}`);
+//             } else {
+//                 console.log(`Renderer: Message ${message.id} delete request sent.`);
+//                 // The message-delete event handler will remove it from the view
+//             }
+//         } catch (error) {
+//             console.error("Renderer: Exception calling deleteChatMessage:", error);
+//             alert(`Error deleting message: ${error.message}`);
+//         }
+//     });
+//     messageDiv.appendChild(deleteButton);
 
-            const repliedAuthorSpan = document.createElement("span");
-            repliedAuthorSpan.classList.add("replied-message-author");
-            repliedAuthorSpan.textContent = originalAuthorName;
+//     const avatarImg = user.renderAvatar();
+//     // avatarImg.classList.add("avatar");
+//     messageDiv.appendChild(avatarImg);
 
-            const repliedContentSpan = document.createElement("span");
-            repliedContentSpan.classList.add("replied-message-content-snippet");
-            let contentSnippet = originalMessage.content || "";
-            if (originalMessage.is_image_content) {
-                contentSnippet = "Image"; // Placeholder for image replies
-            }
-            repliedContentSpan.textContent =
-                contentSnippet.substring(0, 50) + (contentSnippet.length > 50 ? "..." : "");
+//     const messageBodyDiv = document.createElement("div");
+//     messageBodyDiv.classList.add("message-body");
 
-            repliedMessageDiv.appendChild(repliedAuthorSpan);
-            repliedMessageDiv.appendChild(repliedContentSpan);
-            // Add click listener to scroll to the original message
-            repliedMessageDiv.addEventListener("click", () => {
-                const originalMessageElement = document.querySelector(
-                    `[data-message-id="${message.replied_message_id}"]`
-                );
-                if (originalMessageElement) {
-                    originalMessageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-                    // Optionally, add a temporary highlight to the scrolled-to message
-                    originalMessageElement.classList.add("highlighted-message");
-                    setTimeout(() => {
-                        originalMessageElement.classList.remove("highlighted-message");
-                    }, 1500); // Highlight for 1.5 seconds
-                }
-            });
+//     // Handle replied messages
+//     if (message.replied_message_id) {
+//         const originalMessage = currentChannelMessagesMap.get(message.replied_message_id);
 
-            const replyLine = document.createElement("div");
-            replyLine.classList.add("reply-line");
-            repliedMessageDiv.prepend(replyLine);
+//         if (originalMessage) {
+//             const repliedMessageDiv = document.createElement("div");
+//             repliedMessageDiv.classList.add("replied-message-preview");
 
-            messageBodyDiv.appendChild(repliedMessageDiv);
-        }
-    }
+//             const originalAuthorProfile = profilesMap.get(originalMessage.author_id);
+//             const originalAuthorName = (originalAuthorProfile && originalAuthorProfile.username) || "Unknown User";
 
-    const messageHeaderDiv = document.createElement("div");
-    messageHeaderDiv.classList.add("message-header");
+//             const repliedAuthorSpan = document.createElement("span");
+//             repliedAuthorSpan.classList.add("replied-message-author");
+//             repliedAuthorSpan.textContent = originalAuthorName;
 
-    const authorSpan = user.renderUsername();
-    authorSpan.classList.add("message-author");
-    messageHeaderDiv.appendChild(authorSpan);
+//             const repliedContentSpan = document.createElement("span");
+//             repliedContentSpan.classList.add("replied-message-content-snippet");
+//             let contentSnippet = originalMessage.content || "";
+//             if (originalMessage.is_image_content) {
+//                 contentSnippet = "Image"; // Placeholder for image replies
+//             }
+//             repliedContentSpan.textContent =
+//                 contentSnippet.substring(0, 50) + (contentSnippet.length > 50 ? "..." : "");
 
-    const timestampSpan = document.createElement("span");
-    timestampSpan.classList.add("message-timestamp");
-    timestampSpan.textContent = formatTimestamp(message.created_at);
-    messageHeaderDiv.appendChild(timestampSpan);
+//             repliedMessageDiv.appendChild(repliedAuthorSpan);
+//             repliedMessageDiv.appendChild(repliedContentSpan);
+//             // Add click listener to scroll to the original message
+//             repliedMessageDiv.addEventListener("click", () => {
+//                 const originalMessageElement = document.querySelector(
+//                     `[data-message-id="${message.replied_message_id}"]`
+//                 );
+//                 if (originalMessageElement) {
+//                     originalMessageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+//                     // Optionally, add a temporary highlight to the scrolled-to message
+//                     originalMessageElement.classList.add("highlighted-message");
+//                     setTimeout(() => {
+//                         originalMessageElement.classList.remove("highlighted-message");
+//                     }, 1500); // Highlight for 1.5 seconds
+//                 }
+//             });
 
-    messageBodyDiv.appendChild(messageHeaderDiv);
+//             const replyLine = document.createElement("div");
+//             replyLine.classList.add("reply-line");
+//             repliedMessageDiv.prepend(replyLine);
 
-    const messageContentDiv = document.createElement("div");
-    messageContentDiv.classList.add("message-content");
+//             messageBodyDiv.appendChild(repliedMessageDiv);
+//         }
+//     }
 
-    if (message.is_image_content) {
-        const imageElement = document.createElement("img");
-        imageElement.src = message.content;
-        imageElement.alt = "User uploaded image"; // Or a more descriptive alt text if available
-        imageElement.classList.add("message-image"); // Add a class for styling
-        imageElement.addEventListener("click", () => openImageModal(message.content));
-        messageContentDiv.appendChild(imageElement);
-    } else {
-        const contentParagraph = document.createElement("p");
-        contentParagraph.textContent = message.content || "";
-        messageContentDiv.appendChild(contentParagraph);
-    }
+//     const messageHeaderDiv = document.createElement("div");
+//     messageHeaderDiv.classList.add("message-header");
 
-    messageBodyDiv.appendChild(messageContentDiv);
+//     const authorSpan = user.renderUsername();
+//     authorSpan.classList.add("message-author");
+//     messageHeaderDiv.appendChild(authorSpan);
 
-    messageDiv.appendChild(messageBodyDiv);
-    messageListElement.appendChild(messageDiv);
-}
+//     const timestampSpan = document.createElement("span");
+//     timestampSpan.classList.add("message-timestamp");
+//     timestampSpan.textContent = formatTimestamp(message.created_at);
+//     messageHeaderDiv.appendChild(timestampSpan);
+
+//     messageBodyDiv.appendChild(messageHeaderDiv);
+
+//     const messageContentDiv = document.createElement("div");
+//     messageContentDiv.classList.add("message-content");
+
+//     if (message.is_image_content) {
+//         const imageElement = document.createElement("img");
+//         imageElement.src = message.content;
+//         imageElement.alt = "User uploaded image"; // Or a more descriptive alt text if available
+//         imageElement.classList.add("message-image"); // Add a class for styling
+//         imageElement.addEventListener("click", () => openImageModal(message.content));
+//         messageContentDiv.appendChild(imageElement);
+//     } else {
+//         const contentParagraph = document.createElement("p");
+//         contentParagraph.textContent = message.content || "";
+//         messageContentDiv.appendChild(contentParagraph);
+//     }
+
+//     messageBodyDiv.appendChild(messageContentDiv);
+
+//     messageDiv.appendChild(messageBodyDiv);
+//     messageListElement.appendChild(messageDiv);
+// }
 
 // Function to open the image modal
 function openImageModal(imageUrl) {
@@ -282,10 +308,15 @@ function closeImageModal() {
 }
 
 async function loadAndDisplayMessages(channelId) {
-    if (!messageListElement) {
-        console.error("Message list element not found.");
-        return;
-    }
+    // if (!messageListElement) {
+    //     console.error("Message list element not found.");
+    //     return;
+    // }
+
+    notifications.showNotification({
+        title: "loadAndDisplayMessages",
+        body: channelId,
+    })
 
     if (currentChannelId && currentChannelId !== channelId) {
         console.log(`Renderer: Leaving room ${currentChannelId}`);
@@ -301,34 +332,39 @@ async function loadAndDisplayMessages(channelId) {
         await loadAllProfiles(); // Make sure profiles are loaded
     }
 
-    messageListElement.innerHTML = '<div class="message-list-info">Loading messages...</div>'; // Clear and show loading
+    // messageListElement.innerHTML = '<div class="message-list-info">Loading messages...</div>'; // Clear and show loading
 
     try {
         console.log(`Fetching messages for channel ID: ${channelId}`);
-        const { data: messages, error } = await window.electronAPI.getMessagesForChannel(channelId);
+        const { data: msgs, error } = await window.electronAPI.getMessagesForChannel(channelId);
 
-        messageListElement.innerHTML = ""; // Clear loading message
+        // messageListElement.innerHTML = ""; // Clear loading message
         currentChannelMessagesMap.clear(); // Clear previous channel's messages
 
         if (error) {
             console.error(`Error fetching messages for channel ${channelId}:`, error);
-            messageListElement.innerHTML = '<div class="message-list-error">Failed to load messages.</div>';
+            // messageListElement.innerHTML = '<div class="message-list-error">Failed to load messages.</div>';
             return;
         }
 
-        if (messages && messages.length > 0) {
-            console.log("Messages received:", messages);
-            messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-            messages.forEach((msg) => currentChannelMessagesMap.set(msg.id, msg));
-            messages.forEach((message) => renderMessageItem(message));
-            messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
-        } else {
-            console.log("No messages in this channel or returned empty.");
-            messageListElement.innerHTML = '<div class="message-list-info">No messages in this channel.</div>';
-        }
+        messages.setMessages(msgs);
+        messages.renderMessageList(channelId);
+        // messageListElement.innerHTML = "";
+        // messageListElement.appendChild(messages.renderMessageList(channelId));
+
+        // if (messages && messages.length > 0) {
+        //     console.log("Messages received:", messages);
+        //     messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        //     messages.forEach((msg) => currentChannelMessagesMap.set(msg.id, msg));
+        //     messages.forEach((message) => renderMessageItem(message));
+        //     messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
+        // } else {
+        //     console.log("No messages in this channel or returned empty.");
+        //     messageListElement.innerHTML = '<div class="message-list-info">No messages in this channel.</div>';
+        // }
     } catch (err) {
         console.error(`Exception while fetching messages for channel ${channelId}:`, err);
-        messageListElement.innerHTML = '<div class="message-list-error">Error loading messages.</div>';
+        // messageListElement.innerHTML = '<div class="message-list-error">Error loading messages.</div>';
     }
 }
 
@@ -526,7 +562,35 @@ async function loadChannels() {
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("Chat DOM fully loaded and parsed");
 
-    const notifications = new NotificationManager();
+    // Set up message manager
+    document.querySelector(".message-list").replaceWith(messages.element);
+
+    messages.element.addEventListener("image-modal-open-request", (ev) => {
+        if (!ev.detail || !ev.detail.imageUrl) return;
+        openImageModal(ev.detail.imageUrl);
+    });
+
+    messages.element.addEventListener("message-reply-request", (ev) => {
+        if (!ev.detail || !ev.detail.messageId) return;
+        replyingToMessage = ev.detail.messageId;
+        updateReplyPreviewBar();
+    });
+
+    messages.element.addEventListener("message-delete-request", async (ev) => {
+        if (!ev.detail || !ev.detail.messageId) return;
+        const result = await window.electronAPI.deleteChatMessage(ev.detail.messageId);
+        if (result && result.error) {
+            console.error("Renderer: Error deleting message:", result.error);
+            // Optionally, show an error to the user
+            alert(`Failed to delete message: ${result.error.message || JSON.stringify(result.error)}`);
+        } else {
+            console.log(`Renderer: Message ${ev.detail.messageId} delete request sent.`);
+            // The message-delete event handler will remove it from the view
+        }
+    });
+
+    // ^end set up message manager
+
     window.electronAPI.onEvent("notification", (content, duration) => {
         notifications.showNotification(content, duration);
     });
@@ -602,24 +666,29 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (profilesMap.size === 0) await loadAllProfiles();
 
+        // legacy
         currentChannelMessagesMap.set(message.id, message);
-        renderMessageItem(message);
-        messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
+
+        messages.setAndRenderMessage(message);
+
+        // messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
     });
 
     // Listen for message delete events
     window.electronAPI.onEvent("message-delete", async ({ message }) => {
         console.log("Renderer: Received message delete event.");
-        if (message.room_id !== currentChannelId) return;
+        // if (message.room_id !== currentChannelId) return;
 
-        const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-        if (messageElement) messageElement.remove();
+        messages.removeMessage(message.id);
 
-        // Remove the message from the local cache as well
-        if (currentChannelMessagesMap.has(message.id)) {
-            currentChannelMessagesMap.delete(message.id);
-            console.log(`Message with ID ${message.id} removed from local cache.`);
-        }
+        // const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+        // if (messageElement) messageElement.remove();
+
+        // // Remove the message from the local cache as well
+        // if (currentChannelMessagesMap.has(message.id)) {
+        //     currentChannelMessagesMap.delete(message.id);
+        //     console.log(`Message with ID ${message.id} removed from local cache.`);
+        // }
     });
 
     const sendButton = document.querySelector(".send-button");
@@ -636,8 +705,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 const channelId = activeChannelElement.dataset.channelId;
 
-                const repliedMessageId = replyingToMessage ? replyingToMessage.id : null;
-
                 // Check if there's an image to send
                 if (uploadedImageUrl) {
                     console.log(`Sending image message: "${uploadedImageUrl}" to channel ID: ${channelId}`);
@@ -646,7 +713,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                             channelId,
                             uploadedImageUrl,
                             true,
-                            repliedMessageId
+                            replyingToMessage
                         );
                         if (imageMessageResult && imageMessageResult.error) {
                             console.error("Failed to send image message:", imageMessageResult.error);
@@ -685,7 +752,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                             channelId,
                             messageText,
                             false,
-                            repliedMessageId
+                            replyingToMessage
                         );
                         if (result && result.error) {
                             console.error("Failed to send message:", result.error);

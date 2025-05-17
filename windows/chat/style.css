@@ -172,8 +172,9 @@ body {
 
 .message {
     display: flex;
+    flex-direction: column;
     align-items: flex-start; /* Align avatar with top of message body */
-    margin-bottom: 12px;
+    margin: 5px 0;
     max-width: 95%; /* Prevent messages from taking full width */
     position: relative; /* Needed for absolute positioning of the reply button */
     transition: background-color 0.1s ease-in-out;
@@ -206,21 +207,30 @@ body {
 }
 
 .message-author {
-    font-size: 14px;
+    font-size: 14px; /* Base size, can be adjusted */
     font-weight: 600;
     color: #e0e0e0;
     margin-right: 8px;
 }
 
+.message-username {
+    font-size: 0.95em; /* Slightly smaller than base .message-author if it were set directly on .message */
+    font-weight: 400; /* Increased font weight for username */
+}
+
 .message-timestamp {
-    font-size: 11px;
+    font-size: 0.8em; /* Smaller than username */
     color: #808080;
+    margin-left: 8px; /* Add some space between username and timestamp */
 }
 
 .message-content {
-    font-size: 14px;
     line-height: 1.5;
     color: #c0c0c0;
+}
+
+.message-text {
+    font-size: 0.9em; /* Slightly smaller than username, or a bit smaller than default .message-content */
 }
 
 .message-content p {

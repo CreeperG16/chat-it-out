@@ -264,6 +264,7 @@ export class NotificationManager {
         return result; // Return the dismissal reason
     }
 
+    /** @private */
     _positionNotifications() {
         let currentTop = this.baseTopOffset;
         for (const notification of this.activeNotifications) {
