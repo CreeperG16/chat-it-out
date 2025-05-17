@@ -164,7 +164,7 @@ body {
 
 .message-list {
     flex-grow: 1;
-    /* gap: 5px; */
+    /* row-gap: 5px; */
     padding: 15px 20px;
     overflow-y: auto;
     display: flex;
@@ -219,8 +219,8 @@ body {
 }
 
 .message-username {
-    font-size: 0.95em; /* Slightly smaller than base .message-author if it were set directly on .message */
-    font-weight: 400; /* Increased font weight for username */
+    font-size: 0.9em; /* Slightly smaller than base .message-author if it were set directly on .message */
+    font-weight: 600; /* Increased font weight for username */
 }
 
 .message-timestamp {
