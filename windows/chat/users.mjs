@@ -66,22 +66,18 @@ export class User {
     }
 
     renderAvatar() {
-        // Create a container div to hold the avatar and the online indicator
         const container = document.createElement("div");
-        container.style.position = "relative";
+        container.style.position = "absolute";
         container.style.display = "inline-block";
-        // container.style.width = "40px";
-        // container.style.height = "40px";
-        container.style.marginRight = "10px"; // Add margin to the right of the avatar container
+        container.style.marginRight = "10px";
 
-        // Create an img element for the user's avatar using document.createElement
         const img = document.createElement("img");
-        img.src = this.avatar || "../../assets/person.svg"; // Fallback to a default avatar if none is provided
+        img.src = this.avatar || "../../assets/person.svg";
         img.alt = `${this.name}'s avatar`;
-        img.style.width = "40px"; // Example size, adjust as needed
+        img.style.width = "40px";
         img.style.height = "40px";
-        img.style.borderRadius = "10px"; // Rounded square
-        img.style.border = `2px solid ${this.avatarBorderColour}`; // Add border with defined border colour
+        img.style.borderRadius = "10px";
+        img.style.border = `2px solid ${this.avatarBorderColour}`;
 
         container.appendChild(img);
 

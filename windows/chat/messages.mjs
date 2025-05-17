@@ -100,22 +100,42 @@ export class Message {
     }
 
     /** @returns {HTMLDivElement} */
-    render() {
+    render(showDetails = true) {
         switch (this.content.type) {
             case "system_event":
                 return this.renderSystemEvent();
             case "image":
-                return this.renderImageMessage();
+                return this.renderImageMessage(showDetails);
             case "text":
-                return this.renderTextMessage();
+                return this.renderTextMessage(showDetails);
         }
     }
 
-    /** @private @returns {HTMLDivElement} */
-    renderTextMessage() {
+    /**
+     * @private
+     * @param {boolean} showDetails
+     * @returns {HTMLDivElement}
+     */
+    renderTextMessage(showDetails) {
         this.element.innerHTML = "";
         this.element.classList.add("message");
         this.element.dataset.messageId = this.id;
+
+        if (!showDetails) {
+            this.element.classList.add("no-message-details");
+
+            const messageBodyDiv = document.createElement("div");
+            messageBodyDiv.classList.add("message-body");
+
+            const textSpan = document.createElement("span");
+            textSpan.classList.add("message-text");
+            textSpan.textContent = this.content.text;
+
+            messageBodyDiv.appendChild(textSpan);
+            this.element.appendChild(messageBodyDiv);
+
+            return this.element;
+        }
 
         const messageDiv = document.createElement("div");
         messageDiv.style.display = "flex";
@@ -181,11 +201,41 @@ export class Message {
         return this.element;
     }
 
-    /** @private @returns {HTMLDivElement} */
-    renderImageMessage() {
+    /**
+     * @private
+     * @param {boolean} showDetails
+     * @returns {HTMLDivElement}
+     */
+    renderImageMessage(showDetails) {
         this.element.innerHTML = "";
         this.element.classList.add("message");
         this.element.dataset.messageId = this.id;
+
+        if (!showDetails) {
+            this.element.classList.add("no-message-details");
+
+            const messageBodyDiv = document.createElement("div");
+            messageBodyDiv.classList.add("message-body");
+
+            const imageElement = document.createElement("img");
+            imageElement.classList.add("message-image");
+            imageElement.src = this.content.imageUrl;
+            imageElement.alt = "User uploaded image";
+
+            imageElement.addEventListener("click", () => {
+                const event = new CustomEvent("image-modal-open-request", {
+                    detail: { imageUrl: this.content.imageUrl },
+                    bubbles: true,
+                    composed: true,
+                });
+                imageElement.dispatchEvent(event);
+            });
+
+            messageBodyDiv.appendChild(imageElement);
+            this.element.appendChild(messageBodyDiv);
+
+            return this.element;
+        }
 
         const messageDiv = document.createElement("div");
         messageDiv.style.display = "flex";
@@ -395,9 +445,24 @@ export class MessageManager {
         this.element.innerHTML = "";
         const messages = this.getMessages().filter((m) => (channelId ? m.channelId === channelId : true));
 
-        for (const message of messages) {
-            const element = message.render();
-            this.element.appendChild(element);
+        for (const [index, message] of messages.entries()) {
+            const lastMessage = messages.at(index - 1);
+
+            if (!lastMessage) {
+                // There is no last message, i.e this is the first message of the channel or the others got deleted
+                message.render(true);
+            } else if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
+                // The last message (or this one) is a system event, or this message is a reply
+                message.render(true);
+            } else if (lastMessage.author.id !== message.author.id) {
+                // The last message was written by a different person than the one who wrote this one
+                message.render(true);
+            } else {
+                // Same author, no reply, so we don't show the details again
+                message.render(false);
+            }
+
+            this.element.appendChild(message.element);
         }
 
         this.element.scrollTop = this.element.scrollHeight;
@@ -423,7 +488,7 @@ export class MessageManager {
     setMessages(msgs) {
         for (const msg of msgs) this.messages.set(msg.id, new Message(msg, this.userManager));
 
-        // Second pass to link replies. getMessages() returns a sorted list
+        // Second pass to link replies. getMessages() returns a chronologically sorted list
         for (const message of this.getMessages()) {
             if (!message.repliedMessageId) continue;
 
@@ -439,7 +504,23 @@ export class MessageManager {
         }
 
         this.messages.set(msg.id, message);
-        this.element.appendChild(message.render());
+
+        const lastMessage = this.getMessages({ inChannel: message.channelId }).at(-1);
+        if (!lastMessage) {
+            // There is no last message, i.e this is the first message of the channel or the others got deleted
+            message.render(true);
+        } else if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
+            // The last message (or this one) is a system event, or this message is a reply
+            message.render(true);
+        } else if (lastMessage.author.id !== message.author.id) {
+            // The last message was written by a different person than the one who wrote this one
+            message.render(true);
+        } else {
+            // Same author, no reply, so we don't show the details again
+            message.render(false);
+        }
+
+        this.element.appendChild(message.element);
     }
 
     removeMessage(id) {

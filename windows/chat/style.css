@@ -164,6 +164,7 @@ body {
 
 .message-list {
     flex-grow: 1;
+    /* gap: 5px; */
     padding: 15px 20px;
     overflow-y: auto;
     display: flex;
@@ -174,12 +175,17 @@ body {
     display: flex;
     flex-direction: column;
     align-items: flex-start; /* Align avatar with top of message body */
-    margin: 5px 0;
+    margin: 10px 0 0 0;
     max-width: 95%; /* Prevent messages from taking full width */
     position: relative; /* Needed for absolute positioning of the reply button */
     transition: background-color 0.1s ease-in-out;
-    padding: 5px;
+    padding: 3px 0;
     border-radius: 5px;
+}
+
+.no-message-details {
+    margin: 0 !important;
+    padding: 3px 0 3px 54px !important;
 }
 
 .message:hover {
@@ -229,6 +235,10 @@ body {
     color: #c0c0c0;
 }
 
+.message-content-holder {
+    padding: 0 0 0 55px;
+}
+
 .message-text {
     font-size: 0.9em; /* Slightly smaller than username, or a bit smaller than default .message-content */
 }
@@ -241,7 +251,6 @@ body {
     max-width: 100%; /* Ensure image is not wider than its container */
     max-height: 300px; /* Limit image height to prevent overly large images */
     border-radius: 4px; /* Optional: match other border radiuses */
-    margin-top: 5px; /* Add some space above the image */
     cursor: pointer; /* Add cursor pointer to indicate it's clickable */
 }
 
@@ -390,7 +399,7 @@ body {
 /* System Event Message Styles */
 .system-event {
     text-align: center; /* Center the text horizontally */
-    margin: 10px 0; /* Add some vertical spacing */
+    margin: 5px 0; /* Add some vertical spacing */
     padding: 5px 20px; /* Add some padding */
 }
 
