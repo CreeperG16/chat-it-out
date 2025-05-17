@@ -86,6 +86,19 @@ export class Message {
         }
     }
 
+    scrollIntoView(highlight = false) {
+        if (!this.element) return false;
+
+        this.element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        if (!highlight) return true;
+
+        this.element.classList.add("highlighted-message");
+        setTimeout(() => this.element.classList.remove("highlighted-message"), 1500);
+
+        return true;
+    }
+
     /** @returns {HTMLDivElement} */
     render() {
         switch (this.content.type) {
@@ -281,7 +294,7 @@ export class Message {
 
             repliedMessageDiv.appendChild(repliedAuthorSpan);
         }
-        
+
         const repliedContentSpan = document.createElement("span");
         repliedContentSpan.classList.add("replied-message-content-snippet");
 
@@ -301,10 +314,7 @@ export class Message {
         if (originalMessage) {
             repliedMessageDiv.addEventListener("click", () => {
                 if (!originalMessage.element) return;
-                originalMessage.element.scrollIntoView({ behavior: "smooth", block: "center" });
-
-                originalMessage.element.classList.add("highlighted-message");
-                setTimeout(() => originalMessage.element.classList.remove("highlighted-message"), 1500);
+                originalMessage.scrollIntoView(true);
             });
         }
 
@@ -325,7 +335,7 @@ export class Message {
         replyButton.innerHTML = "&#x21A9;"; // Reply arrow symbol
         replyButton.setAttribute("aria-label", "Reply to this message");
         replyButton.title = "Reply";
-        
+
         replyButton.addEventListener("click", (ev) => {
             ev.stopPropagation();
             const event = new CustomEvent("message-reply-request", {
@@ -344,7 +354,7 @@ export class Message {
         deleteButton.innerHTML = "&#x1F5D1;"; // Trash can icon
         deleteButton.setAttribute("aria-label", "Delete this message");
         deleteButton.title = "Delete";
-        
+
         deleteButton.addEventListener("click", (ev) => {
             ev.stopPropagation();
             const event = new CustomEvent("message-delete-request", {
@@ -395,6 +405,21 @@ export class MessageManager {
         return this.element;
     }
 
+    showLoadingState() {
+        this.element.innerHTML = `
+            <div class="message-list-info">
+                <span class="loading-dots-container">
+                    <span class="loading-dot dot1"></span>
+                    <span class="loading-dot dot2"></span>
+                    <span class="loading-dot dot3"></span>
+                </span>
+            </div>`;
+    }
+
+    showErrorState(message) {
+        this.element.innerHTML = `<div class="message-list-info">${message}</div>`;
+    }
+
     setMessages(msgs) {
         for (const msg of msgs) this.messages.set(msg.id, new Message(msg, this.userManager));
 
@@ -434,9 +459,17 @@ export class MessageManager {
         return this.messages.get(id);
     }
 
+    scrollToMessage(id, highlight = false) {
+        const message = this.messages.get(id);
+        if (!message || !message.element) return false;
+
+        message.scrollIntoView(highlight);
+        return true;
+    }
+
     /**
-     * @param {{ byUser?: string | null; inChannel?: string | null }} param0 
-     * @returns 
+     * @param {{ byUser?: string | null; inChannel?: string | null }} param0
+     * @returns
      */
     getMessages({ byUser = null, inChannel = null } = {}) {
         const sortedMessages = [...this.messages.values()].sort((a, b) => a.time - b.time);

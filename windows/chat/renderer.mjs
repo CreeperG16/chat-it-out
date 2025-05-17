@@ -134,18 +134,15 @@ async function loadAndDisplayMessages(channelId) {
         await loadAllProfiles(); // Make sure profiles are loaded
     }
 
-    // messageListElement.innerHTML = '<div class="message-list-info">Loading messages...</div>'; // Clear and show loading
+    messages.showLoadingState();
 
     try {
         console.log(`Fetching messages for channel ID: ${channelId}`);
         const { data: msgs, error } = await window.electronAPI.getMessagesForChannel(channelId);
 
-        // TODO: add loading and error states to MessageManager
-        // messageListElement.innerHTML = ""; // Clear loading message
-
         if (error) {
             console.error(`Error fetching messages for channel ${channelId}:`, error);
-            // messageListElement.innerHTML = '<div class="message-list-error">Failed to load messages.</div>';
+            messages.showErrorState("Failed to load messages.");
             return;
         }
 
@@ -153,7 +150,7 @@ async function loadAndDisplayMessages(channelId) {
         messages.renderMessageList(channelId);
     } catch (err) {
         console.error(`Exception while fetching messages for channel ${channelId}:`, err);
-        // messageListElement.innerHTML = '<div class="message-list-error">Error loading messages.</div>';
+        messages.showErrorState("Error loading messages.");
     }
 }
 
@@ -165,9 +162,8 @@ async function uploadImageFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        // We'll need to define 'uploadImage' in preload.mjs and handle it in main.mjs
         const result = await window.electronAPI.uploadImage({
-            buffer: arrayBuffer, // ArrayBuffer is serializable by Electron's IPC
+            buffer: arrayBuffer,
             type: file.type,
             name: file.name,
         });
@@ -188,50 +184,45 @@ async function uploadImageFile(file) {
 function showImagePreview(imageUrl) {
     const previewArea = document.getElementById("image-preview-area");
     const previewImg = document.getElementById("image-preview-img");
-    const messageInput = document.querySelector(".message-input"); // Get the main message input
+    const messageInput = document.querySelector(".message-input");
 
-    uploadedImageUrl = imageUrl; // Store the URL for sending later
+    uploadedImageUrl = imageUrl;
     previewImg.src = imageUrl;
     previewArea.style.display = "flex";
 
-    // Add click listener to open preview in modal
     previewImg.onclick = () => openImageModal(uploadedImageUrl);
 
     if (messageInput) {
-        messageInput.placeholder = "Add an optional caption..."; // Change placeholder
-        messageInput.focus(); // Focus the main input for caption
+        messageInput.placeholder = "Add an optional caption...";
+        messageInput.focus();
     }
 }
 
 function hideImagePreview() {
     const previewArea = document.getElementById("image-preview-area");
     const imageUploadInput = document.getElementById("image-upload-input");
-    const messageInput = document.querySelector(".message-input"); // Get the main message input
-    const previewImg = document.getElementById("image-preview-img"); // Get the preview image
+    const messageInput = document.querySelector(".message-input");
+    const previewImg = document.getElementById("image-preview-img");
 
     uploadedImageUrl = null;
     previewArea.style.display = "none";
-    if (previewImg) {
-        previewImg.onclick = null; // Remove click listener when hiding
-    }
-    if (imageUploadInput) imageUploadInput.value = ""; // Reset file input
-    if (messageInput) {
-        messageInput.placeholder = "Type a message in #general..."; // Reset placeholder
-    }
+
+    if (previewImg) previewImg.onclick = null;
+    if (imageUploadInput) imageUploadInput.value = "";
+    if (messageInput) messageInput.placeholder = "Type a message in #general...";
 }
 
 function renderChannelItem(channel, listElement) {
     const listItem = document.createElement("li");
     listItem.classList.add("channel-item");
-    listItem.textContent = `#${channel.name}`;
+    listItem.textContent = `#${channel.name.toLowerCase().replace(/\s+/g, "-")}`;
     listItem.dataset.channelId = channel.id;
-    if (channel.hidden) {
-        listItem.classList.add("hidden-channel-item");
-    }
+
+    if (channel.hidden) listItem.classList.add("hidden-channel-item");
 
     listItem.addEventListener("click", async () => {
-        // Made async
         const previouslyActiveChannelElement = document.querySelector(".sidebar .channel-item.active-channel");
+
         if (previouslyActiveChannelElement && previouslyActiveChannelElement.dataset.channelId !== channel.id) {
             const oldChannelId = previouslyActiveChannelElement.dataset.channelId;
             console.log(`Renderer: Leaving room ${oldChannelId} due to channel switch`);
@@ -242,11 +233,15 @@ function renderChannelItem(channel, listElement) {
 
         document.querySelectorAll(".sidebar .channel-item").forEach((i) => i.classList.remove("active-channel"));
         listItem.classList.add("active-channel");
+
         const chatHeader = document.querySelector(".chat-header h3");
-        if (chatHeader) {
-            chatHeader.textContent = listItem.textContent;
-        }
+        if (chatHeader) chatHeader.textContent = listItem.textContent;
+
+        const messageInput = document.querySelector(".message-input");
+        if (messageInput) messageInput.setAttribute("placeholder", `Type a message in ${listItem.textContent}...`)
+
         console.log(`Switched to channel: ${listItem.textContent}, ID: ${channel.id}`);
+
         // loadAndDisplayMessages will handle joining the new room
         loadAndDisplayMessages(channel.id);
     });
@@ -259,6 +254,7 @@ async function loadChannels() {
         console.error("Channel list element not found.");
         return;
     }
+
     const sidebarElement = channelListElement.parentElement;
 
     try {
@@ -276,6 +272,7 @@ async function loadChannels() {
             hiddenChannelsListElement.remove();
             hiddenChannelsListElement = null;
         }
+
         if (hiddenChannelsToggleElement) {
             hiddenChannelsToggleElement.remove();
             hiddenChannelsToggleElement = null;
@@ -287,6 +284,7 @@ async function loadChannels() {
             const visibleChannels = channels
                 .filter((ch) => !ch.hidden)
                 .sort((a, b) => (a.position || 0) - (b.position || 0));
+
             const hiddenChannels = channels
                 .filter((ch) => ch.hidden)
                 .sort((a, b) => (a.position || 0) - (b.position || 0));
@@ -328,14 +326,15 @@ async function loadChannels() {
                 const firstChannelElement =
                     channelListElement.querySelector(".channel-item") ||
                     (hiddenChannelsListElement && hiddenChannelsListElement.querySelector(".channel-item"));
+
                 if (firstChannelElement) {
                     firstChannelElement.classList.add("active-channel");
+
                     const chatHeader = document.querySelector(".chat-header h3");
                     if (chatHeader) chatHeader.textContent = firstChannelElement.textContent;
+
                     const initialChannelId = firstChannelElement.dataset.channelId;
-                    if (initialChannelId) {
-                        loadAndDisplayMessages(initialChannelId);
-                    }
+                    if (initialChannelId) loadAndDisplayMessages(initialChannelId);
                 }
             }
         } else {
@@ -450,13 +449,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!replyPreviewBar) {
         replyPreviewBar = document.createElement("div");
         replyPreviewBar.id = "reply-preview-bar";
-        replyPreviewBar.style.display = "none"; // Initially hidden
-        // Insert it before the chat-input-area
+        replyPreviewBar.style.display = "none";
+
         const chatArea = document.querySelector(".chat-area");
         const chatInputArea = document.querySelector(".chat-input-area");
-        if (chatArea && chatInputArea) {
-            chatArea.insertBefore(replyPreviewBar, chatInputArea);
-        }
+        if (chatArea && chatInputArea) chatArea.insertBefore(replyPreviewBar, chatInputArea);
+
+        replyPreviewBar.addEventListener("click", () => {
+            // Try to scroll to the message
+            if (!replyingToMessage) return;
+            messages.scrollToMessage(replyingToMessage);
+        })
     }
     updateReplyPreviewBar(); // Initial call to set its state
 
@@ -468,8 +471,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (profilesMap.size === 0) await loadAllProfiles();
 
         messages.setAndRenderMessage(message);
+        messages.scrollToMessage(message.id);
 
-        // messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
+        
     });
 
     // Listen for message delete events
@@ -524,6 +528,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         console.error("Error sending image/caption IPC to main process:", error);
                         alert(`Error sending image/caption: ${error.message}`);
                     }
+
                     hideImagePreview(); // Hide preview after sending
                     messageInput.value = ""; // Clear main text input as well
                     replyingToMessage = null; // Clear reply state
