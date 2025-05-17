@@ -164,6 +164,7 @@ body {
 
 .message-list {
     flex-grow: 1;
+    /* row-gap: 5px; */
     padding: 15px 20px;
     overflow-y: auto;
     display: flex;
@@ -172,13 +173,22 @@ body {
 
 .message {
     display: flex;
+    flex-direction: column;
     align-items: flex-start; /* Align avatar with top of message body */
-    margin-bottom: 12px;
-    max-width: 95%; /* Prevent messages from taking full width */
+    margin: 10px 0 0 0;
     position: relative; /* Needed for absolute positioning of the reply button */
     transition: background-color 0.1s ease-in-out;
-    padding: 5px;
+    padding: 3px 0;
     border-radius: 5px;
+}
+
+.no-message-details {
+    margin: 0 !important;
+    padding: 3px 0 3px 54px !important;
+}
+
+.no-message-details .message-image {
+    margin-top: 0 !important;
 }
 
 .message:hover {
@@ -206,21 +216,34 @@ body {
 }
 
 .message-author {
-    font-size: 14px;
+    font-size: 14px; /* Base size, can be adjusted */
     font-weight: 600;
     color: #e0e0e0;
     margin-right: 8px;
 }
 
+.message-username {
+    font-size: 0.9em; /* Slightly smaller than base .message-author if it were set directly on .message */
+    font-weight: 600; /* Increased font weight for username */
+}
+
 .message-timestamp {
-    font-size: 11px;
+    font-size: 0.8em; /* Smaller than username */
     color: #808080;
+    margin-left: 8px; /* Add some space between username and timestamp */
 }
 
 .message-content {
-    font-size: 14px;
     line-height: 1.5;
     color: #c0c0c0;
+}
+
+.message-content-holder {
+    padding: 0 0 0 55px;
+}
+
+.message-text {
+    font-size: 0.9em; /* Slightly smaller than username, or a bit smaller than default .message-content */
 }
 
 .message-content p {
@@ -285,7 +308,7 @@ body {
     background-color: rgba(255, 255, 255, 0.04);
     padding: 4px 8px;
     border-radius: 4px;
-    margin-bottom: 5px;
+    margin: 0 0 5px 54px;
     font-size: 12px;
     color: #a0a0a0;
     display: flex;
@@ -380,7 +403,7 @@ body {
 /* System Event Message Styles */
 .system-event {
     text-align: center; /* Center the text horizontally */
-    margin: 10px 0; /* Add some vertical spacing */
+    margin: 5px 0; /* Add some vertical spacing */
     padding: 5px 20px; /* Add some padding */
 }
 
@@ -456,6 +479,47 @@ body {
 
 .send-button:hover {
     background-color: #0056b3;
+}
+
+/* Loading Dots Animation */
+.loading-dots-container {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.loading-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 3px;
+    border-radius: 50%;
+    background-color: #888; /* Initial color of dots */
+    animation: loadingDots 1.4s infinite ease-in-out both;
+}
+
+.loading-dot.dot1 {
+    animation-delay: -0.32s;
+}
+
+.loading-dot.dot2 {
+    animation-delay: -0.16s;
+}
+
+.loading-dot.dot3 {
+    animation-delay: 0s;
+}
+
+@keyframes loadingDots {
+    0%,
+    80%,
+    100% {
+        background-color: #888; /* Darker or initial state */
+        transform: scale(0.8);
+    }
+    40% {
+        background-color: #ccc; /* Brighter or active state */
+        transform: scale(1);
+    }
 }
 
 /* Image Preview Area Styles */
@@ -541,4 +605,28 @@ body {
     font-size: 40px;
     font-weight: bold;
     cursor: pointer;
+}
+
+/* Dateline Message Styles */
+.date-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin: 10px 0 0 0;
+    padding: 5px 20px;
+}
+
+.date-line p {
+    color: #808080; /* Slightly grey color for the text */
+    font-size: 10px; /* Slightly smaller font size */
+    margin: 0;
+}
+
+.date-line::before, .date-line::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #808080;
+    margin: 0 10px;
 }
