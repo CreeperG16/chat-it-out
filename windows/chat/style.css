@@ -187,6 +187,10 @@ body {
     padding: 3px 0 3px 54px !important;
 }
 
+.no-message-details .message-image {
+    margin-top: 0 !important;
+}
+
 .message:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
@@ -250,6 +254,7 @@ body {
     max-width: 100%; /* Ensure image is not wider than its container */
     max-height: 300px; /* Limit image height to prevent overly large images */
     border-radius: 4px; /* Optional: match other border radiuses */
+    margin-top: 5px; /* Add some space above the image */
     cursor: pointer; /* Add cursor pointer to indicate it's clickable */
 }
 
