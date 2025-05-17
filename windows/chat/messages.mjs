@@ -134,6 +134,10 @@ export class Message {
             messageBodyDiv.appendChild(textSpan);
             this.element.appendChild(messageBodyDiv);
 
+            // Render buttons
+            const buttons = this.renderMessageButtons();
+            this.element.appendChild(buttons);
+
             return this.element;
         }
 
@@ -234,6 +238,10 @@ export class Message {
             messageBodyDiv.appendChild(imageElement);
             this.element.appendChild(messageBodyDiv);
 
+            // Render buttons
+            const buttons = this.renderMessageButtons();
+            this.element.appendChild(buttons);
+
             return this.element;
         }
 
@@ -303,7 +311,7 @@ export class Message {
         // Prepend the replied message preview if this message is a reply
         if (this.repliedMessageId) {
             const repliedMessagePreview = this.renderRepliedPreview(this.replyTo);
-            messageContentDiv.prepend(repliedMessagePreview);
+            this.element.prepend(repliedMessagePreview);
         }
 
         // Render buttons
@@ -443,13 +451,18 @@ export class MessageManager {
      */
     renderMessageList(channelId) {
         this.element.innerHTML = "";
-        const messages = this.getMessages().filter((m) => (channelId ? m.channelId === channelId : true));
+        const messages = this.getMessages({ inChannel: channelId });
 
         for (const [index, message] of messages.entries()) {
-            const lastMessage = messages.at(index - 1);
+            const lastMessage = messages[index - 1];
 
             if (!lastMessage) {
                 // There is no last message, i.e this is the first message of the channel or the others got deleted
+                message.render(true);
+            } else if (lastMessage.time.getDate() !== message.time.getDate()) {
+                // The last message was sent on a different day than this one (also render date separator line in this case)
+                const dateLine = this.getDateLine(message.time);
+                this.element.appendChild(dateLine);
                 message.render(true);
             } else if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
                 // The last message (or this one) is a system event, or this message is a reply
@@ -483,6 +496,22 @@ export class MessageManager {
 
     showErrorState(message) {
         this.element.innerHTML = `<div class="message-list-info">${message}</div>`;
+    }
+
+    /** @param {Date} date */
+    getDateLine(date) {
+        const dateLineContainer = document.createElement("div");
+        dateLineContainer.classList.add("date-line");
+
+        const dateLine = document.createElement("p");
+        const day = date.getDate();
+        const month = date.toLocaleString("en-US", { month: "short" });
+        const year = date.getFullYear();
+        dateLine.textContent = `${day} ${month} ${year}`;
+
+        dateLineContainer.appendChild(dateLine);
+
+        return dateLineContainer;
     }
 
     setMessages(msgs) {

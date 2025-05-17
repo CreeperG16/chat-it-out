@@ -176,7 +176,6 @@ body {
     flex-direction: column;
     align-items: flex-start; /* Align avatar with top of message body */
     margin: 10px 0 0 0;
-    max-width: 95%; /* Prevent messages from taking full width */
     position: relative; /* Needed for absolute positioning of the reply button */
     transition: background-color 0.1s ease-in-out;
     padding: 3px 0;
@@ -304,7 +303,7 @@ body {
     background-color: rgba(255, 255, 255, 0.04);
     padding: 4px 8px;
     border-radius: 4px;
-    margin-bottom: 5px;
+    margin: 0 0 5px 54px;
     font-size: 12px;
     color: #a0a0a0;
     display: flex;
@@ -506,7 +505,9 @@ body {
 }
 
 @keyframes loadingDots {
-    0%, 80%, 100% {
+    0%,
+    80%,
+    100% {
         background-color: #888; /* Darker or initial state */
         transform: scale(0.8);
     }
@@ -599,4 +600,28 @@ body {
     font-size: 40px;
     font-weight: bold;
     cursor: pointer;
+}
+
+/* Dateline Message Styles */
+.date-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin: 10px 0 0 0;
+    padding: 5px 20px;
+}
+
+.date-line p {
+    color: #808080; /* Slightly grey color for the text */
+    font-size: 10px; /* Slightly smaller font size */
+    margin: 0;
+}
+
+.date-line::before, .date-line::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #808080;
+    margin: 0 10px;
 }
