@@ -532,11 +532,14 @@ export class MessageManager {
             message.replyTo = this.messages.get(message.repliedMessageId) || null;
         }
 
-        this.messages.set(msg.id, message);
-
         const lastMessage = this.getMessages({ inChannel: message.channelId }).at(-1);
         if (!lastMessage) {
             // There is no last message, i.e this is the first message of the channel or the others got deleted
+            message.render(true);
+        } else if (lastMessage.time.getDate() !== message.time.getDate()) {
+            // The last message was sent on a different day than this one (also render date separator line in this case)
+            const dateLine = this.getDateLine(message.time);
+            this.element.appendChild(dateLine);
             message.render(true);
         } else if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
             // The last message (or this one) is a system event, or this message is a reply
@@ -549,6 +552,7 @@ export class MessageManager {
             message.render(false);
         }
 
+        this.messages.set(msg.id, message);
         this.element.appendChild(message.element);
     }
 
@@ -562,6 +566,7 @@ export class MessageManager {
         if (message.element && this.element.contains(message.element)) {
             this.element.removeChild(message.element);
         }
+
         this.messages.delete(id);
     }
 
