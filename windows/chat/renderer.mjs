@@ -1,6 +1,6 @@
-import { MessageManager } from "./message-manager.mjs";
-import { NotificationManager } from "./toast-notif.mjs";
-import { UserManager } from "./user-manager.mjs";
+import { MessageManager } from "./messages.mjs";
+import { NotificationManager } from "./notifications.mjs";
+import { UserManager } from "./users.mjs";
 
 // Renderer process for chat window (windows/chat/index.mjs)
 console.log("Chat window renderer script (index.mjs) loaded.");
@@ -14,7 +14,6 @@ let hiddenChannelsToggleElement = null; // To store the toggle element
 let profilesMap = new Map(); // To store user profiles
 let currentChannelId = null; // Added to keep track of the current channel
 let uploadedImageUrl = null; // To store the URL of the image to be sent
-let currentChannelMessagesMap = new Map(); // To store messages of the current channel by ID
 let replyingToMessage = null; // To store the message object being replied to
 
 const notifications = new NotificationManager(); // Toast notifications in the top right
@@ -30,13 +29,6 @@ function updateReplyPreviewBar() {
     if (!replyPreviewBar || !chatInputArea) return;
 
     if (replyingToMessage) {
-        // const authorProfile = profilesMap.get(replyingToMessage.author_id);
-        // const authorName = (authorProfile && authorProfile.username) || "Unknown User";
-        // let contentSnippet = replyingToMessage.content || "";
-        // if (replyingToMessage.is_image_content) {
-        //     contentSnippet = "Image";
-        // }
-
         const message = messages.getMessage(replyingToMessage);
         let contentSnippet = message.content.type === "image" ? "Image" : message.content.text;
         contentSnippet = contentSnippet.substring(0, 100) + (contentSnippet.length > 100 ? "..." : "");
@@ -108,191 +100,6 @@ function updateUserProfileDisplay(profile) {
     }
 }
 
-function formatTimestamp(isoString) {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-// function renderSystemEventItem(message) {
-//     if (!messageListElement) return;
-//     const eventDiv = document.createElement("div");
-//     eventDiv.classList.add("system-event");
-
-//     const contentParagraph = document.createElement("p");
-//     contentParagraph.textContent = message.content || "";
-//     eventDiv.appendChild(contentParagraph);
-
-//     messageListElement.appendChild(eventDiv);
-// }
-
-// function renderMessageItem(message) {
-//     if (!messageListElement) return;
-
-//     const msg = new Message(message, users);
-//     const element = msg.render();
-
-//     if (msg.content.type === "image") {
-//         const img = element.querySelector("img.message-image");
-//         img.addEventListener("click", () => openImageModal(msg.content.imageUrl));
-//     }
-
-//     // if (msg.content.type === "text") {
-//     //     element.addEventListener("click", () => {
-//     //         msg.content.text += " ABC";
-//     //         msg.author.status.online = !msg.author.status.online
-//     //         msg.render();
-//     //     });
-//     // }
-
-//     messageListElement.appendChild(element);
-
-//     return;
-
-//     const authorId = message.author_id || (message.author && message.author.id) || null;
-//     if (authorId === null) {
-//         renderSystemEventItem(message);
-//         return;
-//     }
-
-//     const user = users.getUser(authorId);
-
-//     const messageDiv = document.createElement("div");
-//     messageDiv.classList.add("message");
-//     messageDiv.dataset.messageId = message.id; // Store message ID for easy access
-
-//     // Add reply button (initially hidden, shown on hover)
-//     const replyButton = document.createElement("button");
-//     replyButton.classList.add("reply-button");
-//     replyButton.innerHTML = "&#x21A9;"; // Reply arrow symbol
-//     replyButton.setAttribute("aria-label", "Reply to this message");
-//     replyButton.title = "Reply";
-//     replyButton.addEventListener("click", (e) => {
-//         e.stopPropagation(); // Prevent message click event if any
-//         replyingToMessage = currentChannelMessagesMap.get(message.id);
-//         updateReplyPreviewBar();
-//         document.querySelector(".message-input").focus(); // Focus input
-//     });
-//     messageDiv.appendChild(replyButton);
-
-//     // Add delete button (initially hidden, shown on hover)
-//     const deleteButton = document.createElement("button");
-//     deleteButton.classList.add("delete-button");
-//     deleteButton.innerHTML = "&#x1F5D1;"; // Trash can icon
-//     deleteButton.setAttribute("aria-label", "Delete this message");
-//     deleteButton.title = "Delete";
-//     deleteButton.addEventListener("click", async (e) => {
-//         e.stopPropagation(); // Prevent message click event if any
-//         try {
-//             console.log(`Renderer: Attempting to delete message with ID: ${message.id}`);
-//             const result = await window.electronAPI.deleteChatMessage(message.id);
-//             if (result && result.error) {
-//                 console.error("Renderer: Error deleting message:", result.error);
-//                 // Optionally, show an error to the user
-//                 alert(`Failed to delete message: ${result.error.message || JSON.stringify(result.error)}`);
-//             } else {
-//                 console.log(`Renderer: Message ${message.id} delete request sent.`);
-//                 // The message-delete event handler will remove it from the view
-//             }
-//         } catch (error) {
-//             console.error("Renderer: Exception calling deleteChatMessage:", error);
-//             alert(`Error deleting message: ${error.message}`);
-//         }
-//     });
-//     messageDiv.appendChild(deleteButton);
-
-//     const avatarImg = user.renderAvatar();
-//     // avatarImg.classList.add("avatar");
-//     messageDiv.appendChild(avatarImg);
-
-//     const messageBodyDiv = document.createElement("div");
-//     messageBodyDiv.classList.add("message-body");
-
-//     // Handle replied messages
-//     if (message.replied_message_id) {
-//         const originalMessage = currentChannelMessagesMap.get(message.replied_message_id);
-
-//         if (originalMessage) {
-//             const repliedMessageDiv = document.createElement("div");
-//             repliedMessageDiv.classList.add("replied-message-preview");
-
-//             const originalAuthorProfile = profilesMap.get(originalMessage.author_id);
-//             const originalAuthorName = (originalAuthorProfile && originalAuthorProfile.username) || "Unknown User";
-
-//             const repliedAuthorSpan = document.createElement("span");
-//             repliedAuthorSpan.classList.add("replied-message-author");
-//             repliedAuthorSpan.textContent = originalAuthorName;
-
-//             const repliedContentSpan = document.createElement("span");
-//             repliedContentSpan.classList.add("replied-message-content-snippet");
-//             let contentSnippet = originalMessage.content || "";
-//             if (originalMessage.is_image_content) {
-//                 contentSnippet = "Image"; // Placeholder for image replies
-//             }
-//             repliedContentSpan.textContent =
-//                 contentSnippet.substring(0, 50) + (contentSnippet.length > 50 ? "..." : "");
-
-//             repliedMessageDiv.appendChild(repliedAuthorSpan);
-//             repliedMessageDiv.appendChild(repliedContentSpan);
-//             // Add click listener to scroll to the original message
-//             repliedMessageDiv.addEventListener("click", () => {
-//                 const originalMessageElement = document.querySelector(
-//                     `[data-message-id="${message.replied_message_id}"]`
-//                 );
-//                 if (originalMessageElement) {
-//                     originalMessageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-//                     // Optionally, add a temporary highlight to the scrolled-to message
-//                     originalMessageElement.classList.add("highlighted-message");
-//                     setTimeout(() => {
-//                         originalMessageElement.classList.remove("highlighted-message");
-//                     }, 1500); // Highlight for 1.5 seconds
-//                 }
-//             });
-
-//             const replyLine = document.createElement("div");
-//             replyLine.classList.add("reply-line");
-//             repliedMessageDiv.prepend(replyLine);
-
-//             messageBodyDiv.appendChild(repliedMessageDiv);
-//         }
-//     }
-
-//     const messageHeaderDiv = document.createElement("div");
-//     messageHeaderDiv.classList.add("message-header");
-
-//     const authorSpan = user.renderUsername();
-//     authorSpan.classList.add("message-author");
-//     messageHeaderDiv.appendChild(authorSpan);
-
-//     const timestampSpan = document.createElement("span");
-//     timestampSpan.classList.add("message-timestamp");
-//     timestampSpan.textContent = formatTimestamp(message.created_at);
-//     messageHeaderDiv.appendChild(timestampSpan);
-
-//     messageBodyDiv.appendChild(messageHeaderDiv);
-
-//     const messageContentDiv = document.createElement("div");
-//     messageContentDiv.classList.add("message-content");
-
-//     if (message.is_image_content) {
-//         const imageElement = document.createElement("img");
-//         imageElement.src = message.content;
-//         imageElement.alt = "User uploaded image"; // Or a more descriptive alt text if available
-//         imageElement.classList.add("message-image"); // Add a class for styling
-//         imageElement.addEventListener("click", () => openImageModal(message.content));
-//         messageContentDiv.appendChild(imageElement);
-//     } else {
-//         const contentParagraph = document.createElement("p");
-//         contentParagraph.textContent = message.content || "";
-//         messageContentDiv.appendChild(contentParagraph);
-//     }
-
-//     messageBodyDiv.appendChild(messageContentDiv);
-
-//     messageDiv.appendChild(messageBodyDiv);
-//     messageListElement.appendChild(messageDiv);
-// }
-
 // Function to open the image modal
 function openImageModal(imageUrl) {
     const modal = document.getElementById("image-modal");
@@ -308,15 +115,10 @@ function closeImageModal() {
 }
 
 async function loadAndDisplayMessages(channelId) {
-    // if (!messageListElement) {
-    //     console.error("Message list element not found.");
-    //     return;
-    // }
-
-    notifications.showNotification({
-        title: "loadAndDisplayMessages",
-        body: channelId,
-    })
+    // notifications.showNotification({
+    //     title: "loadAndDisplayMessages",
+    //     body: channelId,
+    // })
 
     if (currentChannelId && currentChannelId !== channelId) {
         console.log(`Renderer: Leaving room ${currentChannelId}`);
@@ -338,8 +140,8 @@ async function loadAndDisplayMessages(channelId) {
         console.log(`Fetching messages for channel ID: ${channelId}`);
         const { data: msgs, error } = await window.electronAPI.getMessagesForChannel(channelId);
 
+        // TODO: add loading and error states to MessageManager
         // messageListElement.innerHTML = ""; // Clear loading message
-        currentChannelMessagesMap.clear(); // Clear previous channel's messages
 
         if (error) {
             console.error(`Error fetching messages for channel ${channelId}:`, error);
@@ -349,19 +151,6 @@ async function loadAndDisplayMessages(channelId) {
 
         messages.setMessages(msgs);
         messages.renderMessageList(channelId);
-        // messageListElement.innerHTML = "";
-        // messageListElement.appendChild(messages.renderMessageList(channelId));
-
-        // if (messages && messages.length > 0) {
-        //     console.log("Messages received:", messages);
-        //     messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        //     messages.forEach((msg) => currentChannelMessagesMap.set(msg.id, msg));
-        //     messages.forEach((message) => renderMessageItem(message));
-        //     messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
-        // } else {
-        //     console.log("No messages in this channel or returned empty.");
-        //     messageListElement.innerHTML = '<div class="message-list-info">No messages in this channel.</div>';
-        // }
     } catch (err) {
         console.error(`Exception while fetching messages for channel ${channelId}:`, err);
         // messageListElement.innerHTML = '<div class="message-list-error">Error loading messages.</div>';
@@ -565,6 +354,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Set up message manager
     document.querySelector(".message-list").replaceWith(messages.element);
 
+    // Handle events
     messages.element.addEventListener("image-modal-open-request", (ev) => {
         if (!ev.detail || !ev.detail.imageUrl) return;
         openImageModal(ev.detail.imageUrl);
@@ -581,20 +371,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         const result = await window.electronAPI.deleteChatMessage(ev.detail.messageId);
         if (result && result.error) {
             console.error("Renderer: Error deleting message:", result.error);
-            // Optionally, show an error to the user
-            alert(`Failed to delete message: ${result.error.message || JSON.stringify(result.error)}`);
+            notifications.showNotification({
+                title: "Failed to delete message",
+                body: result.error.message || JSON.stringify(result.error),
+            });
         } else {
             console.log(`Renderer: Message ${ev.detail.messageId} delete request sent.`);
-            // The message-delete event handler will remove it from the view
+            // The message-delete event handler will remove it from the view if deletion is successful
         }
     });
 
-    // ^end set up message manager
-
+    // Expose the ability to show toast notifications to the main process too
     window.electronAPI.onEvent("notification", (content, duration) => {
         notifications.showNotification(content, duration);
     });
 
+    // This is due a rewrite using the RealtimeSocket class in the main process code
     window.electronAPI.onEvent("custom-presence-diff", ({ joins, leaves }) => {
         for (const joiningUserId of joins) {
             const user = users.getUser(joiningUserId);
@@ -614,11 +406,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         for (const user of users.getUsers()) {
             const profile = profiles.find((p) => p.id === user.id);
+            const oldStatus = user.status.online;
+
             if (profile) {
                 user.updateData(profile);
                 user.status.online = true;
             } else {
                 user.status.online = false;
+            }
+
+            if (user.status.online === oldStatus) continue;
+
+            // This updates the online status circle for all messages by the user whose status changed
+            for (const message of messages.getMessages({ byUser: user.id })) {
+                message.render();
             }
         }
     });
@@ -666,9 +467,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (profilesMap.size === 0) await loadAllProfiles();
 
-        // legacy
-        currentChannelMessagesMap.set(message.id, message);
-
         messages.setAndRenderMessage(message);
 
         // messageListElement.scrollTop = messageListElement.scrollHeight; // Scroll to bottom
@@ -677,18 +475,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Listen for message delete events
     window.electronAPI.onEvent("message-delete", async ({ message }) => {
         console.log("Renderer: Received message delete event.");
-        // if (message.room_id !== currentChannelId) return;
-
         messages.removeMessage(message.id);
-
-        // const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-        // if (messageElement) messageElement.remove();
-
-        // // Remove the message from the local cache as well
-        // if (currentChannelMessagesMap.has(message.id)) {
-        //     currentChannelMessagesMap.delete(message.id);
-        //     console.log(`Message with ID ${message.id} removed from local cache.`);
-        // }
     });
 
     const sendButton = document.querySelector(".send-button");

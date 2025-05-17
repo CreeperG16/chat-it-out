@@ -1,4 +1,4 @@
-import { User, UserManager } from "./user-manager.mjs";
+import { User, UserManager } from "./users.mjs";
 
 const EXAMPLE_MESSAGE = {
     id: "1e0fff31-3c58-4193-81ba-c7f4ce6f9bad",
@@ -156,7 +156,7 @@ export class Message {
         this.element.appendChild(messageDiv);
 
         // Prepend the replied message preview if this message is a reply
-        if (this.replyTo) {
+        if (this.repliedMessageId) {
             const repliedMessagePreview = this.renderRepliedPreview(this.replyTo);
             this.element.prepend(repliedMessagePreview);
         }
@@ -238,7 +238,7 @@ export class Message {
         this.element.appendChild(messageDiv);
 
         // Prepend the replied message preview if this message is a reply
-        if (this.replyTo) {
+        if (this.repliedMessageId) {
             const repliedMessagePreview = this.renderRepliedPreview(this.replyTo);
             messageContentDiv.prepend(repliedMessagePreview);
         }
@@ -272,33 +272,41 @@ export class Message {
         const repliedMessageDiv = document.createElement("div");
         repliedMessageDiv.classList.add("replied-message-preview");
 
-        const originalAuthorName = originalMessage.author ? originalMessage.author.name : "Unknown User";
+        if (originalMessage) {
+            const originalAuthorName = originalMessage.author ? originalMessage.author.name : "Unknown User";
 
-        const repliedAuthorSpan = document.createElement("span");
-        repliedAuthorSpan.classList.add("replied-message-author");
-        repliedAuthorSpan.textContent = originalAuthorName;
+            const repliedAuthorSpan = document.createElement("span");
+            repliedAuthorSpan.classList.add("replied-message-author");
+            repliedAuthorSpan.textContent = originalAuthorName;
 
+            repliedMessageDiv.appendChild(repliedAuthorSpan);
+        }
+        
         const repliedContentSpan = document.createElement("span");
         repliedContentSpan.classList.add("replied-message-content-snippet");
+
         let contentSnippet = "";
-        if (originalMessage.content.type === "image") {
+        if (!originalMessage) {
+            contentSnippet = "Message not loaded";
+        } else if (originalMessage.content.type === "image") {
             contentSnippet = "Image"; // Placeholder for image replies
         } else if (originalMessage.content.type === "text") {
             contentSnippet = originalMessage.content.text || "";
         }
-        repliedContentSpan.textContent = contentSnippet.substring(0, 50) + (contentSnippet.length > 50 ? "..." : "");
 
-        repliedMessageDiv.appendChild(repliedAuthorSpan);
+        repliedContentSpan.textContent = contentSnippet.substring(0, 50) + (contentSnippet.length > 50 ? "..." : "");
         repliedMessageDiv.appendChild(repliedContentSpan);
 
         // Add click listener to scroll to the original message
-        repliedMessageDiv.addEventListener("click", () => {
-            if (!originalMessage.element) return;
-            originalMessage.element.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (originalMessage) {
+            repliedMessageDiv.addEventListener("click", () => {
+                if (!originalMessage.element) return;
+                originalMessage.element.scrollIntoView({ behavior: "smooth", block: "center" });
 
-            originalMessage.element.classList.add("highlighted-message");
-            setTimeout(() => originalMessage.element.classList.remove("highlighted-message"), 1500);
-        });
+                originalMessage.element.classList.add("highlighted-message");
+                setTimeout(() => originalMessage.element.classList.remove("highlighted-message"), 1500);
+            });
+        }
 
         const replyLine = document.createElement("div");
         replyLine.classList.add("reply-line");
@@ -426,11 +434,15 @@ export class MessageManager {
         return this.messages.get(id);
     }
 
+    /**
+     * @param {{ byUser?: string | null; inChannel?: string | null }} param0 
+     * @returns 
+     */
     getMessages({ byUser = null, inChannel = null } = {}) {
         const sortedMessages = [...this.messages.values()].sort((a, b) => a.time - b.time);
 
         return sortedMessages
-            .filter((m) => (byUser === null ? true : m.author.id === byUser))
+            .filter((m) => (byUser === null ? true : m.author?.id === byUser))
             .filter((m) => (inChannel === null ? true : m.channelId === inChannel));
     }
 }
