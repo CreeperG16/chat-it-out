@@ -13,7 +13,7 @@ A third-party desktop client for the [CHAT IT IN](https://www.chatitin.com) chat
 
 ## Screenshots
 
-> *(Add some screenshots or GIFs here to showcase the UI!)*
+> TODO
 
 ## Try it yourself!
 
