@@ -1,25 +1,44 @@
 # Chat it out
 
-This is a client for [CHAT IT IN](https://chatitin.com/) built using electron
+A third-party desktop client for the [CHAT IT IN](https://www.chatitin.com) chat platform, built using Electron, with a clean and minimal vanilla JavaScript, HTML, and CSS frontend.
 
-I made it because I was bored and thought it was a funny idea to reverse engineer the HTTP requests etc.
-The front end and a lot of the original backend code was made by gemini 2.5 pro.
-After holding the AI's hand every step of the way, I try to reorganise a lot of the code and clean it up
+## Features
 
-This project was simultaneously me trying out vscode agent mode and me reverse engineering David's http requests
+- Authentication (login from the official site)
+- Switch between channels (rooms) at will
+- Sending and receiving chat messages in real time
+- Online status
+- Upload and send images
+- Reply to and delete messages
 
-I could have just used the Supabase JS library but I challenged myself to do it all with raw HTTP and WebSocket
+## Screenshots
 
+> *(Add some screenshots or GIFs here to showcase the UI!)*
 
-The authentication flow in particular is fun
+## Try it yourself!
 
-I outlined what I wanted in a .md file for the AI to read
+Head to the latest [release](https://github.com/CreeperG16/releases/latest) and download the bundled executable for your OS.
 
+## Running from source
 
-All things considered, I still needed to know a decent amount about JS and electron to debug and fix problems that the AI managed to think up
+Prerequisites: [Node.js](https://nodejs.org/) and [Git](https://git-scm.com/)
 
-I haven't really tried other models yet, but Gemini 2.5 doesn't seem to like creating new files to organise code into, it prefers writing 500-line long implementations which start containing redundant code when the file gets big enough not to fit in the model's provided context
+```bash
+git clone https://github.com/CreeperG16/chat-it-out.git
+cd chat-it-out
+npm install
+````
 
-There was at least one hallucination-induced problem
+### Running the App
 
-@UCDFiddes is adding features to chat it in faster than I can implement them here though lol
+```bash
+npm start
+```
+
+This will launch the Electron app. On first run, you'll be prompted to log into CHAT IT IN.
+
+## Reverse Engineering
+
+This project was built by inspecting and mimicking the network behavior of the official CHAT IT IN web client. All HTTP endpoints and WebSocket messages were reverse engineered using browser dev tools.
+
+Authentication is handled by opening the official login page in a separate window. Once the user logs in, the session cookie is intercepted and saved, and its token is used to authenticate further requests.
