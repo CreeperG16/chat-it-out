@@ -13,7 +13,14 @@ A third-party desktop client for the [CHAT IT IN](https://www.chatitin.com) chat
 
 ## Screenshots
 
-> TODO
+_Login via the official site_
+![The official CHAT IT IN login page, open in a window](screenshots/login.png)
+
+_Clean, familiar chat UI_
+![The main chat window, with the general channel selected](screenshots/chat.png)
+
+_Upload, send, receive and open images_
+![An open image modal, showing an image previously sent in a message](screenshots/images.png)
 
 ## Try it yourself!
 
