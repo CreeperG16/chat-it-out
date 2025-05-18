@@ -17,7 +17,7 @@ A third-party desktop client for the [CHAT IT IN](https://www.chatitin.com) chat
 
 ## Try it yourself!
 
-Head to the latest [release](https://github.com/CreeperG16/releases/latest) and download the bundled executable for your OS.
+Head to the latest [release](https://github.com/CreeperG16/chat-it-out/releases/latest) and download the bundled executable for your OS.
 
 ## Running from source
 
