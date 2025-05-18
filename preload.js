@@ -1,7 +1,7 @@
-// preload.mjs
+// preload.js
 const { contextBridge, ipcRenderer } = require("electron");
 
-console.log("Preload script (preload.mjs) loaded.");
+console.log("Preload script (preload.js) loaded.");
 
 contextBridge.exposeInMainWorld("electronAPI", {
     // Store interaction
@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     setStoreValue: (key, value) => ipcRenderer.invoke("set-store-value", key, value),
 
     // Window management
-    openChatWindow: () => ipcRenderer.invoke("request-open-chat-window"), // Renamed in main.mjs
+    openChatWindow: () => ipcRenderer.invoke("request-open-chat-window"), // Renamed in main.js
     openExternalLogin: () => ipcRenderer.invoke("open-external-login"), // Added for auth flow
 
     // User Profile
@@ -41,7 +41,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // According to your authflow.md, you might need to notify the main process
     // about successful login to close the login window and open the chat window.
     // This specific IPC call 'login-successful' might not be needed anymore with the new auth flow
-    // as token detection and chat window opening is handled in main.mjs after external auth.
+    // as token detection and chat window opening is handled in main.js after external auth.
     // loginSuccessful: () => ipcRenderer.invoke('login-successful'),
 
     uploadImage: (imageDetails) => // Modified to accept a single object

@@ -3,7 +3,7 @@
     "description": "A third party chat client for the platform CHAT IT IN, written using electron.",
     "version": "0.1.3",
     "type": "module",
-    "main": "main.mjs",
+    "main": "main.js",
     "author": {
         "name": "Tamás Papp",
         "url": "https://github.com/CreeperG16"

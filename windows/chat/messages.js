@@ -1,4 +1,4 @@
-import { User, UserManager } from "./users.mjs";
+import { User, UserManager } from "./users.js";
 
 const EXAMPLE_MESSAGE = {
     id: "1e0fff31-3c58-4193-81ba-c7f4ce6f9bad",

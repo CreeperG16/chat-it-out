@@ -66,7 +66,7 @@ const example_create = {
         payload: {
             id: "170f6108-1c70-4278-99b8-7191a53ce7a1",
             message: {
-                // This is the same structure as `api.mjs` `getMessages(channelId)`
+                // This is the same structure as `api.js` `getMessages(channelId)`
             },
         },
         type: "broadcast",

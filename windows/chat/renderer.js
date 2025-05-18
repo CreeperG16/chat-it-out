@@ -1,9 +1,9 @@
-import { MessageManager } from "./messages.mjs";
-import { NotificationManager } from "./notifications.mjs";
-import { UserManager } from "./users.mjs";
+import { MessageManager } from "./messages.js";
+import { NotificationManager } from "./notifications.js";
+import { UserManager } from "./users.js";
 
-// Renderer process for chat window (windows/chat/index.mjs)
-console.log("Chat window renderer script (index.mjs) loaded.");
+// Renderer process for chat window (windows/chat/index.js)
+console.log("Chat window renderer script (index.js) loaded.");
 
 const userAvatarSidebar = document.getElementById("user-avatar-sidebar");
 const usernameSidebar = document.getElementById("username-sidebar");

@@ -1,4 +1,4 @@
-// Renderer process for login window (windows/login/index.mjs)
+// Renderer process for login window (windows/login/index.js)
 console.log("Login window renderer script loaded.");
 
 document.addEventListener("DOMContentLoaded", () => {

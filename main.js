@@ -6,14 +6,14 @@ import {
     postMessage,
     respondToScreenshot,
     updateStatus,
-} from "./lib/api.mjs";
-import { MessageSocket, RealtimeSocket } from "./lib/socket.mjs";
+} from "./lib/api.js";
+import { MessageSocket, RealtimeSocket } from "./lib/socket.js";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "url";
 import Store from "electron-store";
 import path from "path";
-import { createAuthWindow } from "./windows/auth/main.mjs";
-import { uploadFile, uploadHashedImage } from "./lib/storage.mjs";
+import { createAuthWindow } from "./windows/auth/main.js";
+import { uploadFile, uploadHashedImage } from "./lib/storage.js";
 import { randomUUID } from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -38,7 +38,7 @@ function createWindow(htmlPath, width = 800, height = 600) {
         height: lastWindowState.height,
         icon: "./assets/chat-it-out.svg",
         webPreferences: {
-            preload: path.join(__dirname, "preload.mjs"),
+            preload: path.join(__dirname, "preload.js"),
             contextIsolation: true,
             nodeIntegration: false,
         },
@@ -568,4 +568,4 @@ app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();
 });
 
-console.log("Main process (main.mjs) loaded.");
+console.log("Main process (main.js) loaded.");
