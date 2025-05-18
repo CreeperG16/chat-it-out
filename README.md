@@ -49,3 +49,9 @@ This will launch the Electron app. On first run, you'll be prompted to log into 
 This project was built by inspecting and mimicking the network behavior of the official CHAT IT IN web client. All HTTP endpoints and WebSocket messages were reverse engineered using browser dev tools.
 
 Authentication is handled by opening the official login page in a separate window. Once the user logs in, the session cookie is intercepted and saved, and its token is used to authenticate further requests.
+
+## Vibe coding?
+
+When I started this project, I wanted to try out the "vibe coding" everyone is talking about. So I spun up Visual Studio Code, opened the chat panel, set it to agent mode, and told it to build an electron app around an api.js file I had defined. This went about as badly as I expected, and I even completely restarted from the ground up near the beginning. For an actually usable, and more importantly, maintainable program, I had to hold AI's hand Every. Step. of the way - usually explaining in great detail what I wanted it to implement and how. If I didn't have experience with JavaScript (HTML, CSS), Node.JS and Electron beforehand, this project would have lasted about as far as a working(ish) proof of concept.
+
+For the beginnings of this program, I tried Gemini 2.5 pro and GPT 4o. After a few features, however, the code got extremely messy, had many redundant parts, and was all in all unmaintanable and extremely hard to expand upon by me. For a while now, I have been slowly rewriting, moving and refactoring all the code that the AI agents threw into one or two files, to build a project structure that makes sense (at least to me) and is easy to expand. I still sometimes ask for the help of AI for repetitive tasks, or boilderplate, or small implementations, but the agent isn't capable enough to implement big features. Yet.
