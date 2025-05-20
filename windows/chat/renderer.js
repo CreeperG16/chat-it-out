@@ -1,23 +1,20 @@
+import { ChannelManager } from "./channels.js";
 import { MessageManager } from "./messages.js";
 import { NotificationManager } from "./notifications.js";
 import { UserManager } from "./users.js";
 
-// Renderer process for chat window (windows/chat/index.js)
 console.log("Chat window renderer script (index.js) loaded.");
 
 const userAvatarSidebar = document.getElementById("user-avatar-sidebar");
 const usernameSidebar = document.getElementById("username-sidebar");
 const defaultAvatar = "../../assets/person.svg"; // Path to your default avatar
-const channelListElement = document.querySelector(".channel-list");
-let hiddenChannelsListElement = null; // To store the UL for hidden channels
-let hiddenChannelsToggleElement = null; // To store the toggle element
 let profilesMap = new Map(); // To store user profiles
-let currentChannelId = null; // Added to keep track of the current channel
 let uploadedImageUrl = null; // To store the URL of the image to be sent
 let replyingToMessage = null; // To store the message object being replied to
 
 const notifications = new NotificationManager(); // Toast notifications in the top right
 const users = new UserManager();
+const channels = new ChannelManager();
 const messages = new MessageManager(users);
 
 // Function to update the reply preview bar
@@ -115,20 +112,6 @@ function closeImageModal() {
 }
 
 async function loadAndDisplayMessages(channelId) {
-    // notifications.showNotification({
-    //     title: "loadAndDisplayMessages",
-    //     body: channelId,
-    // })
-
-    if (currentChannelId && currentChannelId !== channelId) {
-        console.log(`Renderer: Leaving room ${currentChannelId}`);
-        await window.electronAPI.leaveChatRoom(currentChannelId);
-    }
-
-    currentChannelId = channelId; // Update current channel ID
-    console.log(`Renderer: Joining room ${currentChannelId}`);
-    await window.electronAPI.joinChatRoom(currentChannelId);
-
     // Ensure profiles are loaded before trying to display messages
     if (profilesMap.size === 0) {
         await loadAllProfiles(); // Make sure profiles are loaded
@@ -212,140 +195,76 @@ function hideImagePreview() {
     if (messageInput) messageInput.placeholder = "Type a message in #general...";
 }
 
-function renderChannelItem(channel, listElement) {
-    const listItem = document.createElement("li");
-    listItem.classList.add("channel-item");
-    listItem.textContent = `#${channel.name.toLowerCase().replace(/\s+/g, "-")}`;
-    listItem.dataset.channelId = channel.id;
-
-    if (channel.hidden) listItem.classList.add("hidden-channel-item");
-
-    listItem.addEventListener("click", async () => {
-        const previouslyActiveChannelElement = document.querySelector(".sidebar .channel-item.active-channel");
-
-        if (previouslyActiveChannelElement && previouslyActiveChannelElement.dataset.channelId !== channel.id) {
-            const oldChannelId = previouslyActiveChannelElement.dataset.channelId;
-            console.log(`Renderer: Leaving room ${oldChannelId} due to channel switch`);
-            await window.electronAPI.leaveChatRoom(oldChannelId);
-        }
-
-        currentChannelId = channel.id;
-
-        document.querySelectorAll(".sidebar .channel-item").forEach((i) => i.classList.remove("active-channel"));
-        listItem.classList.add("active-channel");
-
-        const chatHeader = document.querySelector(".chat-header h3");
-        if (chatHeader) chatHeader.textContent = listItem.textContent;
-
-        const messageInput = document.querySelector(".message-input");
-        if (messageInput) messageInput.setAttribute("placeholder", `Type a message in ${listItem.textContent}...`)
-
-        console.log(`Switched to channel: ${listItem.textContent}, ID: ${channel.id}`);
-
-        // loadAndDisplayMessages will handle joining the new room
-        loadAndDisplayMessages(channel.id);
-    });
-    listElement.appendChild(listItem);
-    return listItem;
-}
-
-async function loadChannels() {
-    if (!channelListElement) {
-        console.error("Channel list element not found.");
+async function handleChannelSwitch(channelId, previousChannelId) {
+    const channel = channels.getChannel(channelId);
+    if (!channel) {
+        console.error(`Unexpected switch to unknown channel with ID '${channelId}'`);
         return;
     }
 
-    const sidebarElement = channelListElement.parentElement;
+    if (previousChannelId) {
+        console.log(`Leaving room for channel ${previousChannelId}.`);
+        await window.electronAPI.leaveChatRoom(previousChannelId);
+    }
 
+    await window.electronAPI.joinChatRoom(channel.id);
+
+    const chatHeader = document.querySelector(".chat-header h3");
+    if (chatHeader) chatHeader.textContent = channel.lowerName();
+
+    const messageInput = document.querySelector(".message-input");
+    if (messageInput) messageInput.setAttribute("placeholder", `Type a message in ${channel.lowerName()}...`);
+
+    console.log(`Switched to channel '${channel.lowerName()}' (${channel.id})`);
+
+    loadAndDisplayMessages(channel.id);
+    window.electronAPI.setStoreValue("selected-channel", channel.id);
+}
+
+async function loadChannels() {
     try {
         console.log("Attempting to fetch channels...");
-        const { data: channels, error } = await window.electronAPI.getChannels();
+        const { data: rooms, error } = await window.electronAPI.getChannels();
 
         if (error) {
             console.error("Error fetching channels:", error);
-            channelListElement.innerHTML = '<li class="channel-item-error">Failed to load channels.</li>';
+            channels.channelListElement.innerHTML = '<li class="channel-item-error">Failed to load channels.</li>';
             return;
         }
 
-        channelListElement.innerHTML = "";
-        if (hiddenChannelsListElement) {
-            hiddenChannelsListElement.remove();
-            hiddenChannelsListElement = null;
-        }
-
-        if (hiddenChannelsToggleElement) {
-            hiddenChannelsToggleElement.remove();
-            hiddenChannelsToggleElement = null;
-        }
-
-        if (channels && channels.length > 0) {
-            console.log("Channels received:", channels);
-
-            const visibleChannels = channels
-                .filter((ch) => !ch.hidden)
-                .sort((a, b) => (a.position || 0) - (b.position || 0));
-
-            const hiddenChannels = channels
-                .filter((ch) => ch.hidden)
-                .sort((a, b) => (a.position || 0) - (b.position || 0));
-
-            visibleChannels.forEach((channel, index) => {
-                const item = renderChannelItem(channel, channelListElement);
-                if (index === 0 && hiddenChannels.length === 0) {
-                    item.classList.add("active-channel");
-                    const chatHeader = document.querySelector(".chat-header h3");
-                    if (chatHeader) chatHeader.textContent = item.textContent;
-                }
-            });
-
-            if (hiddenChannels.length > 0) {
-                hiddenChannelsToggleElement = document.createElement("div");
-                hiddenChannelsToggleElement.classList.add("hidden-channels-toggle");
-                hiddenChannelsToggleElement.textContent = "Show hidden channels";
-                sidebarElement.insertBefore(hiddenChannelsToggleElement, channelListElement.nextSibling);
-
-                hiddenChannelsListElement = document.createElement("ul");
-                hiddenChannelsListElement.classList.add("channel-list", "hidden-channels-list");
-                hiddenChannelsListElement.style.display = "none";
-                sidebarElement.insertBefore(hiddenChannelsListElement, hiddenChannelsToggleElement.nextSibling);
-
-                hiddenChannels.forEach((channel) => {
-                    renderChannelItem(channel, hiddenChannelsListElement);
-                });
-
-                hiddenChannelsToggleElement.addEventListener("click", () => {
-                    const isHidden = hiddenChannelsListElement.style.display === "none";
-                    hiddenChannelsListElement.style.display = isHidden ? "block" : "none";
-                    hiddenChannelsToggleElement.textContent = isHidden
-                        ? "Hide hidden channels"
-                        : "Show hidden channels";
-                });
-            }
-
-            if (!document.querySelector(".channel-item.active-channel")) {
-                const firstChannelElement =
-                    channelListElement.querySelector(".channel-item") ||
-                    (hiddenChannelsListElement && hiddenChannelsListElement.querySelector(".channel-item"));
-
-                if (firstChannelElement) {
-                    firstChannelElement.classList.add("active-channel");
-
-                    const chatHeader = document.querySelector(".chat-header h3");
-                    if (chatHeader) chatHeader.textContent = firstChannelElement.textContent;
-
-                    const initialChannelId = firstChannelElement.dataset.channelId;
-                    if (initialChannelId) loadAndDisplayMessages(initialChannelId);
-                }
-            }
-        } else {
+        if (!rooms || rooms.length === 0) {
             console.log("No channels available or returned empty.");
-            channelListElement.innerHTML = '<li class="channel-item-info">No channels available.</li>';
+            channels.channelListElement.innerHTML = '<li class="channel-item-info">No channels available.</li>';
+            return;
         }
+
+        console.log("Channels received:", rooms);
+        channels.setChannels(rooms);
+        channels.renderChannelList();
+
+        channels.channelListElement.addEventListener("channel-selected", (ev) => {
+            const { channelId, previousChannelId } = ev.detail ?? {};
+            
+            // previousChannelId can be null
+            if (!channelId) {
+                console.error("Unexpected channel-selected event with missing channel ID.");
+                return;
+            }
+
+            handleChannelSwitch(channelId, previousChannelId);
+        });
     } catch (err) {
         console.error("Exception while fetching channels:", err);
-        channelListElement.innerHTML = '<li class="channel-item-error">Error loading channels.</li>';
+        channels.channelListElement.innerHTML = '<li class="channel-item-error">Error loading channels.</li>';
     }
 }
+
+document.addEventListener("keyup", (e) => {
+    if (e.key === "Escape" && replyingToMessage) {
+        replyingToMessage = null;
+        updateReplyPreviewBar();
+    }
+});
 
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("Chat DOM fully loaded and parsed");
@@ -353,19 +272,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Set up message manager
     document.querySelector(".message-list").replaceWith(messages.element);
 
+    // Channel manager's channel list
+    document.querySelector(".channel-list").replaceWith(channels.channelListElement);
+
     // Handle events
-    messages.element.addEventListener("image-modal-open-request", (ev) => {
+    messages.onEvent("image-modal-open-request", (ev) => {
         if (!ev.detail || !ev.detail.imageUrl) return;
         openImageModal(ev.detail.imageUrl);
     });
 
-    messages.element.addEventListener("message-reply-request", (ev) => {
+    messages.onEvent("message-reply-request", (ev) => {
         if (!ev.detail || !ev.detail.messageId) return;
         replyingToMessage = ev.detail.messageId;
         updateReplyPreviewBar();
+
+        /** @type {HTMLInputElement} */
+        const chatInput = document.querySelector(".message-input");
+        chatInput.focus();
     });
 
-    messages.element.addEventListener("message-delete-request", async (ev) => {
+    messages.onEvent("message-delete-request", async (ev) => {
         if (!ev.detail || !ev.detail.messageId) return;
         const result = await window.electronAPI.deleteChatMessage(ev.detail.messageId);
         if (result && result.error) {
@@ -418,7 +344,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             // This updates the online status circle for all messages by the user whose status changed
             for (const message of messages.getMessages({ byUser: user.id })) {
-                message.render();
+                if (!message.element.classList.contains("no-message-details")) message.render();
             }
         }
     });
@@ -442,7 +368,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         updateUserProfileDisplay(null);
     }
 
+    const lastSelectedChannel = await window.electronAPI.getStoreValue("selected-channel");
     await loadChannels();
+
+    if (lastSelectedChannel && channels.exists(lastSelectedChannel)) {
+        channels.switchChannels(lastSelectedChannel);
+        await handleChannelSwitch(lastSelectedChannel);
+    }
 
     // Create the reply preview bar element if it doesn't exist
     let replyPreviewBar = document.getElementById("reply-preview-bar");
@@ -458,7 +390,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         replyPreviewBar.addEventListener("click", () => {
             // Try to scroll to the message
             if (!replyingToMessage) return;
-            messages.scrollToMessage(replyingToMessage);
+            messages.scrollToMessage(replyingToMessage, true);
         })
     }
     updateReplyPreviewBar(); // Initial call to set its state
@@ -466,14 +398,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Listen for new messages from the main process
     window.electronAPI.onEvent("message-create", async ({ message }) => {
         console.log("Renderer: Received new message object.");
-        if (message.room_id !== currentChannelId) return;
+        if (message.room_id !== channels.selectedChannel) return;
 
         if (profilesMap.size === 0) await loadAllProfiles();
 
         messages.setAndRenderMessage(message);
-        messages.scrollToMessage(message.id);
-
-        
+        messages.scrollToMessage(message.id);        
     });
 
     // Listen for message delete events

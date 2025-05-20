@@ -359,6 +359,7 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     font-size: 13px;
     color: #b0b0b0;
+    cursor: pointer;
 }
 
 .reply-preview-content {
