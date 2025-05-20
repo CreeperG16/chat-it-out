@@ -259,6 +259,13 @@ async function loadChannels() {
     }
 }
 
+document.addEventListener("keyup", (e) => {
+    if (e.key === "Escape" && replyingToMessage) {
+        replyingToMessage = null;
+        updateReplyPreviewBar();
+    }
+});
+
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("Chat DOM fully loaded and parsed");
 
@@ -278,6 +285,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!ev.detail || !ev.detail.messageId) return;
         replyingToMessage = ev.detail.messageId;
         updateReplyPreviewBar();
+
+        /** @type {HTMLInputElement} */
+        const chatInput = document.querySelector(".message-input");
+        chatInput.focus();
     });
 
     messages.onEvent("message-delete-request", async (ev) => {
@@ -379,7 +390,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         replyPreviewBar.addEventListener("click", () => {
             // Try to scroll to the message
             if (!replyingToMessage) return;
-            messages.scrollToMessage(replyingToMessage);
+            messages.scrollToMessage(replyingToMessage, true);
         })
     }
     updateReplyPreviewBar(); // Initial call to set its state
