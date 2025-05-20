@@ -36,6 +36,9 @@ export class Message {
     /** @readonly @type {HTMLDivElement} */
     element = document.createElement("div");
 
+    /** @type {boolean} */
+    showDetails = true;
+
     /**
      * @param {any} msg
      * @param {UserManager} userManager
@@ -100,28 +103,29 @@ export class Message {
     }
 
     /** @returns {HTMLDivElement} */
-    render(showDetails = true) {
+    render() {
+        this.element.classList.remove("no-message-details");
+
         switch (this.content.type) {
             case "system_event":
                 return this.renderSystemEvent();
             case "image":
-                return this.renderImageMessage(showDetails);
+                return this.renderImageMessage();
             case "text":
-                return this.renderTextMessage(showDetails);
+                return this.renderTextMessage();
         }
     }
 
     /**
      * @private
-     * @param {boolean} showDetails
      * @returns {HTMLDivElement}
      */
-    renderTextMessage(showDetails) {
+    renderTextMessage() {
         this.element.innerHTML = "";
         this.element.classList.add("message");
         this.element.dataset.messageId = this.id;
 
-        if (!showDetails) {
+        if (!this.hasDetails) {
             this.element.classList.add("no-message-details");
 
             const messageBodyDiv = document.createElement("div");
@@ -207,15 +211,14 @@ export class Message {
 
     /**
      * @private
-     * @param {boolean} showDetails
      * @returns {HTMLDivElement}
      */
-    renderImageMessage(showDetails) {
+    renderImageMessage() {
         this.element.innerHTML = "";
         this.element.classList.add("message");
         this.element.dataset.messageId = this.id;
 
-        if (!showDetails) {
+        if (!this.hasDetails) {
             this.element.classList.add("no-message-details");
 
             const messageBodyDiv = document.createElement("div");
@@ -427,6 +430,10 @@ export class Message {
 
         return buttonsDiv;
     }
+
+    // hasDetails() {
+    //     return !this.element.classList.contains("no-message-details")
+    // }
 }
 
 export class MessageManager {
@@ -445,6 +452,43 @@ export class MessageManager {
         this.element.classList.add("message-list");
     }
 
+    shouldMessageHaveDetails(message, lastMessage) {
+        if (!lastMessage) {
+            // There is no last message, i.e this is the first message of the channel or the others got deleted
+            return true;
+        }
+        
+        if (lastMessage.time.getDate() !== message.time.getDate()) {
+            // The last message was sent on a different day than this one
+            return true;
+        }
+        
+        if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
+            // The last message (or this one) is a system event, or this message is a reply
+            return true;
+        }
+        
+        if (lastMessage.author.id !== message.author.id) {
+            // The last message was written by a different person than the one who wrote this one
+            return true;
+        }
+
+        // Same author, no reply, so we don't show the details again
+        return false;
+    }
+
+    shouldInsertDateLine(message, lastMessage) {
+        // There are no messages preceeding this one
+        if (!lastMessage) return true;
+
+        // The last message was sent on a different day than this one
+        if (lastMessage.time.getDate() !== message.time.getDate()) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * @param {string | undefined} channelId
      * @returns {HTMLDivElement}
@@ -456,24 +500,13 @@ export class MessageManager {
         for (const [index, message] of messages.entries()) {
             const lastMessage = messages[index - 1];
 
-            if (!lastMessage) {
-                // There is no last message, i.e this is the first message of the channel or the others got deleted
-                message.render(true);
-            } else if (lastMessage.time.getDate() !== message.time.getDate()) {
-                // The last message was sent on a different day than this one (also render date separator line in this case)
+            if (this.shouldInsertDateLine(message, lastMessage)) {
                 const dateLine = this.getDateLine(message.time);
                 this.element.appendChild(dateLine);
-                message.render(true);
-            } else if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
-                // The last message (or this one) is a system event, or this message is a reply
-                message.render(true);
-            } else if (lastMessage.author.id !== message.author.id) {
-                // The last message was written by a different person than the one who wrote this one
-                message.render(true);
-            } else {
-                // Same author, no reply, so we don't show the details again
-                message.render(false);
             }
+
+            message.hasDetails = this.shouldMessageHaveDetails(message, lastMessage);
+            message.render();
 
             this.element.appendChild(message.element);
         }
@@ -533,25 +566,36 @@ export class MessageManager {
         }
 
         const lastMessage = this.getMessages({ inChannel: message.channelId }).at(-1);
-        if (!lastMessage) {
-            // There is no last message, i.e this is the first message of the channel or the others got deleted
-            message.render(true);
-        } else if (lastMessage.time.getDate() !== message.time.getDate()) {
-            // The last message was sent on a different day than this one (also render date separator line in this case)
+
+        if (this.shouldInsertDateLine(message, lastMessage)) {
             const dateLine = this.getDateLine(message.time);
             this.element.appendChild(dateLine);
-            message.render(true);
-        } else if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
-            // The last message (or this one) is a system event, or this message is a reply
-            message.render(true);
-        } else if (lastMessage.author.id !== message.author.id) {
-            // The last message was written by a different person than the one who wrote this one
-            message.render(true);
-        } else {
-            // Same author, no reply, so we don't show the details again
-            message.render(false);
         }
 
+        message.hasDetails = this.shouldMessageHaveDetails(message, lastMessage);
+
+        // if (!lastMessage) {
+        //     // There is no last message, i.e this is the first message of the channel or the others got deleted
+        //     message.hasDetails = true;
+        // } else if (lastMessage.time.getDate() !== message.time.getDate()) {
+        //     // The last message was sent on a different day than this one (also render date separator line in this case)
+        //     const dateLine = this.getDateLine(message.time);
+        //     this.element.appendChild(dateLine);
+
+        //     message.hasDetails = true;
+        // } else if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
+        //     // The last message (or this one) is a system event, or this message is a reply
+        //     message.hasDetails = true;
+        // } else if (lastMessage.author.id !== message.author.id) {
+        //     // The last message was written by a different person than the one who wrote this one
+        //     message.hasDetails = true;
+        // } else {
+        //     // Same author, no reply, so we don't show the details again
+        //     message.hasDetails = false;
+        // }
+
+        message.render();
+        
         this.messages.set(msg.id, message);
         this.element.appendChild(message.element);
     }
@@ -592,5 +636,13 @@ export class MessageManager {
         return sortedMessages
             .filter((m) => (byUser === null ? true : m.author?.id === byUser))
             .filter((m) => (inChannel === null ? true : m.channelId === inChannel));
+    }
+
+    onEvent(eventName, listener, once = false) {
+        this.element.addEventListener(eventName, listener, { once });
+    }
+
+    offEvent(eventName, listener) {
+        this.element.removeEventListener(eventName, listener);
     }
 }
