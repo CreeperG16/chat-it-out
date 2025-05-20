@@ -46,7 +46,7 @@ export class Channel {
 }
 
 export class ChannelManager {
-    /** @readonly @type {Map<string, Channel>} */
+    /** @private @readonly @type {Map<string, Channel>} */
     channels = new Map();
 
     /** @readonly @type {HTMLUListElement} */
@@ -109,5 +109,9 @@ export class ChannelManager {
         }
 
         return this.channelListElement;
+    }
+
+    exists(id) {
+        return this.channels.has(id);
     }
 }

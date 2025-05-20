@@ -360,7 +360,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const lastSelectedChannel = await window.electronAPI.getStoreValue("selected-channel");
     await loadChannels();
 
-    if (lastSelectedChannel) {
+    if (lastSelectedChannel && channels.exists(lastSelectedChannel)) {
         channels.switchChannels(lastSelectedChannel);
         await handleChannelSwitch(lastSelectedChannel);
     }
