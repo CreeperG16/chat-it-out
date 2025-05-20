@@ -39,6 +39,9 @@ export class Message {
     /** @type {boolean} */
     showDetails = true;
 
+    /** @type {boolean} Whether it's a client-side ghost message */
+    isGhostMessage = false;
+
     /**
      * @param {any} msg
      * @param {UserManager} userManager
@@ -105,6 +108,12 @@ export class Message {
     /** @returns {HTMLDivElement} */
     render() {
         this.element.classList.remove("no-message-details");
+
+        if (this.isGhostMessage) {
+            this.element.classList.add("ghost-message");
+        } else {
+            this.element.classList.remove("ghost-message");
+        }
 
         switch (this.content.type) {
             case "system_event":
@@ -453,17 +462,21 @@ export class MessageManager {
             // There is no last message, i.e this is the first message of the channel or the others got deleted
             return true;
         }
-        
+
         if (lastMessage.time.getDate() !== message.time.getDate()) {
             // The last message was sent on a different day than this one
             return true;
         }
-        
-        if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
+
+        if (
+            lastMessage.content.type === "system_event" ||
+            message.content.type === "system_event" ||
+            message.repliedMessageId
+        ) {
             // The last message (or this one) is a system event, or this message is a reply
             return true;
         }
-        
+
         if (lastMessage.author.id !== message.author.id) {
             // The last message was written by a different person than the one who wrote this one
             return true;
@@ -555,8 +568,21 @@ export class MessageManager {
         }
     }
 
-    setAndRenderMessage(msg) {
+    setAndRenderMessage(msg, { ghost = false } = {}) {
+        if (this.messages.has(msg.id)) {
+            // TODO: what to do if there's a conflict
+            const message = this.messages.get(msg.id);
+            message.updateData(msg, this.userManager);
+            if (message.isGhostMessage !== ghost) {
+                message.isGhostMessage = ghost;
+                message.render();
+            }
+            return;
+        }
+
         const message = new Message(msg, this.userManager);
+        message.isGhostMessage = ghost;
+
         if (message.repliedMessageId) {
             message.replyTo = this.messages.get(message.repliedMessageId) || null;
         }
@@ -570,7 +596,7 @@ export class MessageManager {
 
         message.hasDetails = this.shouldMessageHaveDetails(message, lastMessage);
         message.render();
-        
+
         this.messages.set(msg.id, message);
         this.element.appendChild(message.element);
     }

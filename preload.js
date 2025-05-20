@@ -22,10 +22,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // Messages
     getMessagesForChannel: (channelId) => ipcRenderer.invoke("get-messages-for-channel", channelId),
 
-    sendChatMessage: (channelId, message, isImage, repliedId) => ipcRenderer.invoke("send-chat-message", channelId, message, isImage, repliedId),
+    // sendChatMessage: (channelId, message, isImage, repliedId) => ipcRenderer.invoke("send-chat-message", channelId, message, isImage, repliedId),
     deleteChatMessage: (messageId) => ipcRenderer.invoke("delete-chat-message", messageId),
     joinChatRoom: (roomId) => ipcRenderer.invoke("join-chat-room", roomId), // Added
     leaveChatRoom: (roomId) => ipcRenderer.invoke("leave-chat-room", roomId), // Added
+
+    sendChatMessage: (payload) => ipcRenderer.invoke("send-chat-message", payload),
 
     // Example: send a message to the main process
     // sendMessage: (channel, data) => ipcRenderer.send(channel, data),

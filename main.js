@@ -5,6 +5,7 @@ import {
     getProfiles,
     postMessage,
     respondToScreenshot,
+    sendMessage,
     updateStatus,
 } from "./lib/api.js";
 import { MessageSocket, RealtimeSocket } from "./lib/socket.js";
@@ -163,7 +164,7 @@ ipcMain.handle("get-all-profiles", async () => {
     return { data: profiles, error: null };
 });
 
-ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, isImageContent, repliedId) => {
+ipcMain.handle("send-chat-message-old", async (_event, channelId, messageContent, isImageContent, repliedId) => {
     const userData = store.get("userData");
     if (!userData || !userData.access_token || !userData.user || !userData.user.id) {
         console.error("Cannot send message: User data, access token, or user ID not found.");
@@ -189,6 +190,23 @@ ipcMain.handle("send-chat-message", async (_event, channelId, messageContent, is
     }
 
     // console.log("Main: Message posted successfully");
+    return { data, error: null };
+});
+
+ipcMain.handle("send-chat-message", async (_event, payload) => {
+    const userData = store.get("userData");
+    if (!userData || !userData.access_token) {
+        console.error("Cannot send message: no user data");
+        return { data: null, error: { message: "User not authenticated" } };
+    }
+
+    const { data, error } = await sendMessage({ ...payload, author_id: userData.user.id }, userData.access_token);
+
+    if (error) {
+        console.error("Main: Failed to send message:", error);
+        return { data: null, error };
+    }
+
     return { data, error: null };
 });
 
@@ -532,7 +550,7 @@ app.whenReady().then(async () => {
         // TODO: move this somewhere else where it makes sense
         // const userData = store.get("userData");
         // await initCustomStatus(userData.user.id, messageSocket);
-        
+
         await updateCurrentStatus();
 
         return;

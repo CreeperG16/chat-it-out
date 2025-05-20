@@ -101,6 +101,11 @@ export class User {
 
 export class UserManager {
     /** @readonly */ users = new Map();
+    /** @type {User | null} */ self = null;
+
+    setSelf(profile) {
+        this.self = new User(profile);
+    }
 
     setUsers(profiles) {
         for (const profile of profiles) this.users.set(profile.id, new User(profile));
