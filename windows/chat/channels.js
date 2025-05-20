@@ -73,6 +73,11 @@ export class ChannelManager {
         return this.channels.get(id);
     }
 
+    switchChannels(channelId) {
+        this.selectedChannel = channelId;
+        this.renderChannelList();
+    }
+
     renderChannelList() {
         this.channelListElement.innerHTML = "";
 
@@ -96,9 +101,7 @@ export class ChannelManager {
                     composed: true,
                 });
 
-                this.selectedChannel = channel.id;
-                this.renderChannelList();
-
+                this.switchChannels(channel.id);
                 this.channelListElement.dispatchEvent(event);
             });
 

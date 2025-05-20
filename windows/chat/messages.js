@@ -430,10 +430,6 @@ export class Message {
 
         return buttonsDiv;
     }
-
-    // hasDetails() {
-    //     return !this.element.classList.contains("no-message-details")
-    // }
 }
 
 export class MessageManager {
@@ -573,27 +569,6 @@ export class MessageManager {
         }
 
         message.hasDetails = this.shouldMessageHaveDetails(message, lastMessage);
-
-        // if (!lastMessage) {
-        //     // There is no last message, i.e this is the first message of the channel or the others got deleted
-        //     message.hasDetails = true;
-        // } else if (lastMessage.time.getDate() !== message.time.getDate()) {
-        //     // The last message was sent on a different day than this one (also render date separator line in this case)
-        //     const dateLine = this.getDateLine(message.time);
-        //     this.element.appendChild(dateLine);
-
-        //     message.hasDetails = true;
-        // } else if (lastMessage.content.type === "system_event" || message.content.type === "system_event" || message.repliedMessageId) {
-        //     // The last message (or this one) is a system event, or this message is a reply
-        //     message.hasDetails = true;
-        // } else if (lastMessage.author.id !== message.author.id) {
-        //     // The last message was written by a different person than the one who wrote this one
-        //     message.hasDetails = true;
-        // } else {
-        //     // Same author, no reply, so we don't show the details again
-        //     message.hasDetails = false;
-        // }
-
         message.render();
         
         this.messages.set(msg.id, message);
