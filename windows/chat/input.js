@@ -14,7 +14,7 @@ export class InputManager {
     attachmentBarElement = document.createElement("div");
 
     /** @private @type {Message | null} */
-    replyingToMessage;
+    replyingToMessage = null;
 
     /** @private @readonly @type {any[]} */
     attachments = [];
@@ -40,7 +40,20 @@ export class InputManager {
                 ev.preventDefault();
                 this.sendMessage();
             }
-        })
+        });
+
+        this.replyBarElement.id = "reply-preview-bar";
+        this.replyBarElement.style.display = "none";
+
+        this.messageManager.onEvent("message-reply-request", (ev) => {
+            if (!ev.detail || !ev.detail.messageId) return;
+
+            const message = this.messageManager.getMessage(ev.detail.messageId);
+            if (!message) return;
+
+            this.startReplying(message);
+            this.chatBarElement.focus();
+        });
     }
 
     updatePlaceholder(message) {
@@ -51,32 +64,33 @@ export class InputManager {
     async sendMessage() {
         const id = crypto.randomUUID();
 
-        // TODO: replies, attachments
+        // TODO: attachments
         const content = this.chatBarElement.textContent;
         if (!content) return; // Don't send empty message (TODO: images)
 
         // Can't send a message if no channel is selected
         if (!this.channelManager.selectedChannel) return;
 
-        // TODO: emoji
+        // TODO: emotes
 
         const payload = {
             id,
             content,
             room_id: this.channelManager.selectedChannel,
             is_image_content: false, // TODO
+            replied_message_id: this.replyingToMessage?.id ?? null,
             author_id: this.userManager.self.id,
             created_at: new Date().toISOString(),
-        }        
+        };
 
         this.chatBarElement.innerHTML = "";
-        
-        // TODO: messagemanager - show a ghost message until sendmessage resolves
-        // Need to add logged in profile as a User to have an author
 
-        console.log("sending and rendering msg", payload);
+        console.log("Renderer: rendering ghost message.", payload);
 
+        // Render a client-side ghost message
+        // Will become a full message when it's received via the realtime socket
         this.messageManager.setAndRenderMessage(payload, { ghost: true });
+        if (this.replyingToMessage) this.stopReplying();
 
         return await window.electronAPI.sendChatMessage(payload);
     }
@@ -86,10 +100,12 @@ export class InputManager {
     /** @param {Message} message */
     startReplying(message) {
         this.replyingToMessage = message;
+        this.renderReplyBar();
     }
 
     stopReplying() {
         this.replyingToMessage = null;
+        this.renderReplyBar();
     }
 
     renderReplyBar() {
@@ -97,8 +113,27 @@ export class InputManager {
 
         if (!this.replyingToMessage) {
             this.replyBarElement.style.display = "none";
-            return;
+            this.chatBarElement.style.paddingTop = "10px";
+            return this.replyBarElement;
         }
+
+        let contentSnippet =
+            this.replyingToMessage.content.type === "text" ? this.replyingToMessage.content.text : "Image";
+
+        contentSnippet = contentSnippet.substring(0, 100) + (contentSnippet.length > 100 ? "..." : "");
+
+        this.replyBarElement.innerHTML = /* html */ `
+            <div class="reply-preview-content">
+                <span class="reply-preview-label">Replying to ${this.replyingToMessage.author.name}:</span>
+                <span class="reply-preview-snippet">${contentSnippet}</span>
+            </div>
+            <button class="cancel-reply-button" id="cancel-reply-btn" aria-label="Cancel reply">&times;</button>
+        `;
+        this.replyBarElement.style.display = "flex";
+        this.chatBarElement.style.paddingTop = "5px";
+        this.replyBarElement.querySelector("button").addEventListener("click", () => this.stopReplying());
+
+        return this.replyBarElement;
     }
     //#endregion
 

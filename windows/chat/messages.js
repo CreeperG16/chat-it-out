@@ -36,6 +36,9 @@ export class Message {
     /** @readonly @type {HTMLDivElement} */
     element = document.createElement("div");
 
+    /** @type {Message | null} */
+    replyTo = null; // Will be populated by MessageManager
+
     /** @type {boolean} */
     showDetails = true;
 
@@ -76,7 +79,6 @@ export class Message {
         }
 
         this.repliedMessageId = msg.replied_message_id; // Store the ID for now
-        this.replyTo = null; // Will be populated by MessageManager
         this.reactions = msg.reactions;
 
         const authorId = msg.author_id || (msg.author && msg.author.id);

@@ -286,6 +286,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Set up input manager
     document.querySelector(".message-input").replaceWith(input.chatBarElement);
+    document.querySelector("#reply-preview-bar").replaceWith(input.replyBarElement);
 
     // Set up message manager
     document.querySelector(".message-list").replaceWith(messages.element);
@@ -299,15 +300,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         openImageModal(ev.detail.imageUrl);
     });
 
-    messages.onEvent("message-reply-request", (ev) => {
-        if (!ev.detail || !ev.detail.messageId) return;
-        replyingToMessage = ev.detail.messageId;
-        updateReplyPreviewBar();
+    // messages.onEvent("message-reply-request", (ev) => {
+    //     if (!ev.detail || !ev.detail.messageId) return;
+    //     replyingToMessage = ev.detail.messageId;
+    //     updateReplyPreviewBar();
 
-        /** @type {HTMLInputElement} */
-        const chatInput = document.querySelector(".message-input");
-        chatInput.focus();
-    });
+    //     /** @type {HTMLInputElement} */
+    //     const chatInput = document.querySelector(".message-input");
+    //     chatInput.focus();
+    // });
 
     messages.onEvent("message-delete-request", async (ev) => {
         if (!ev.detail || !ev.detail.messageId) return;
@@ -396,23 +397,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Create the reply preview bar element if it doesn't exist
-    let replyPreviewBar = document.getElementById("reply-preview-bar");
-    if (!replyPreviewBar) {
-        replyPreviewBar = document.createElement("div");
-        replyPreviewBar.id = "reply-preview-bar";
-        replyPreviewBar.style.display = "none";
+    // let replyPreviewBar = document.getElementById("reply-preview-bar");
+    // if (!replyPreviewBar) {
+    //     replyPreviewBar = document.createElement("div");
+    //     replyPreviewBar.id = "reply-preview-bar";
+    //     replyPreviewBar.style.display = "none";
 
-        const chatArea = document.querySelector(".chat-area");
-        const chatInputArea = document.querySelector(".chat-input-area");
-        if (chatArea && chatInputArea) chatArea.insertBefore(replyPreviewBar, chatInputArea);
+    //     const chatArea = document.querySelector(".chat-area");
+    //     const chatInputArea = document.querySelector(".chat-input-area");
+    //     if (chatArea && chatInputArea) chatArea.insertBefore(replyPreviewBar, chatInputArea);
 
-        replyPreviewBar.addEventListener("click", () => {
-            // Try to scroll to the message
-            if (!replyingToMessage) return;
-            messages.scrollToMessage(replyingToMessage, true);
-        })
-    }
-    updateReplyPreviewBar(); // Initial call to set its state
+    //     replyPreviewBar.addEventListener("click", () => {
+    //         // Try to scroll to the message
+    //         if (!replyingToMessage) return;
+    //         messages.scrollToMessage(replyingToMessage, true);
+    //     })
+    // }
+    // updateReplyPreviewBar(); // Initial call to set its state
 
     // Listen for new messages from the main process
     window.electronAPI.onEvent("message-create", async ({ message }) => {
