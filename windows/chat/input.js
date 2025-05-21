@@ -44,6 +44,11 @@ export class InputManager {
 
         this.replyBarElement.id = "reply-preview-bar";
         this.replyBarElement.style.display = "none";
+        this.replyBarElement.addEventListener("click", () => {
+            // Try to scroll to the message
+            if (!this.replyingToMessage) return;
+            this.messageManager.scrollToMessage(this.replyingToMessage, true);
+        });
 
         this.messageManager.onEvent("message-reply-request", (ev) => {
             if (!ev.detail || !ev.detail.messageId) return;
@@ -106,6 +111,10 @@ export class InputManager {
     stopReplying() {
         this.replyingToMessage = null;
         this.renderReplyBar();
+    }
+
+    isReplying() {
+        return this.replyingToMessage !== null;
     }
 
     renderReplyBar() {

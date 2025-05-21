@@ -268,9 +268,8 @@ async function loadChannels() {
 
 document.addEventListener("keyup", (e) => {
     if (e.key === "Escape") {
-        if (replyingToMessage) {
-            replyingToMessage = null;
-            updateReplyPreviewBar();
+        if (input.isReplying()) {
+            input.stopReplying();
             return;
         }
 
@@ -395,25 +394,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         channels.switchChannels(lastSelectedChannel);
         await handleChannelSwitch(lastSelectedChannel);
     }
-
-    // Create the reply preview bar element if it doesn't exist
-    // let replyPreviewBar = document.getElementById("reply-preview-bar");
-    // if (!replyPreviewBar) {
-    //     replyPreviewBar = document.createElement("div");
-    //     replyPreviewBar.id = "reply-preview-bar";
-    //     replyPreviewBar.style.display = "none";
-
-    //     const chatArea = document.querySelector(".chat-area");
-    //     const chatInputArea = document.querySelector(".chat-input-area");
-    //     if (chatArea && chatInputArea) chatArea.insertBefore(replyPreviewBar, chatInputArea);
-
-    //     replyPreviewBar.addEventListener("click", () => {
-    //         // Try to scroll to the message
-    //         if (!replyingToMessage) return;
-    //         messages.scrollToMessage(replyingToMessage, true);
-    //     })
-    // }
-    // updateReplyPreviewBar(); // Initial call to set its state
 
     // Listen for new messages from the main process
     window.electronAPI.onEvent("message-create", async ({ message }) => {

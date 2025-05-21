@@ -621,8 +621,8 @@ export class MessageManager {
         return this.messages.get(id);
     }
 
-    scrollToMessage(id, highlight = false) {
-        const message = this.messages.get(id);
+    scrollToMessage(message, highlight = false) {
+        if (typeof message === "string") message = this.messages.get(message);
         if (!message || !message.element) return false;
 
         message.scrollIntoView(highlight);
