@@ -262,7 +262,7 @@ ipcMain.handle("join-chat-room", async (_event, roomId) => {
 
     const result = await realtime.joinChannel({
         channelId: `room:${roomId}`,
-        isPrivate: true,
+        isPrivate: false,
     });
 
     return result;

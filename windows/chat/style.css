@@ -183,7 +183,12 @@ body {
 }
 
 .message.ghost-message {
-    color: #555;
+    /* color: #555; */
+    opacity: 0.5;
+}
+
+.message.ghost-message-failed {
+    color: #f55;
 }
 
 .no-message-details {
@@ -530,6 +535,7 @@ body {
 /* Image Preview Area Styles */
 .image-preview-area {
     display: flex; /* Use flex for layout */
+    flex-direction: row;
     align-items: center; /* Vertically align items */
     padding: 10px 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -537,7 +543,7 @@ body {
     position: relative; /* For positioning the cancel button */
 }
 
-#image-preview-img {
+.image-preview-img {
     width: 60px; /* Adjust size as needed */
     height: 60px;
     object-fit: cover;
@@ -554,6 +560,7 @@ body {
     cursor: pointer;
     padding: 0 5px; /* Minimal padding */
     line-height: 1; /* Ensure it aligns well */
+    margin-left: auto;
 }
 
 .cancel-upload-button:hover {

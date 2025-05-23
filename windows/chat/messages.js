@@ -144,7 +144,7 @@ export class Message {
 
             const textSpan = document.createElement("span");
             textSpan.classList.add("message-text");
-            textSpan.textContent = this.content.text;
+            textSpan.innerHTML = this.content.text.replace(/\n/g, "<br>");
 
             messageBodyDiv.appendChild(textSpan);
             this.element.appendChild(messageBodyDiv);
@@ -200,7 +200,7 @@ export class Message {
 
         const textSpan = document.createElement("span");
         textSpan.classList.add("message-text");
-        textSpan.textContent = this.content.text;
+        textSpan.innerHTML = this.content.text.replace(/\n/g, "<br>");
         messageBodyDiv.appendChild(textSpan);
 
         messageContentDiv.appendChild(messageBodyDiv);
@@ -430,7 +430,7 @@ export class Message {
         deleteButton.addEventListener("click", (ev) => {
             ev.stopPropagation();
             const event = new CustomEvent("message-delete-request", {
-                detail: { messageId: this.id },
+                detail: { messageId: this.id, isGhostMessage: this.isGhostMessage },
                 bubbles: true,
                 composed: true,
             });
@@ -457,6 +457,15 @@ export class MessageManager {
     constructor(userManager) {
         this.userManager = userManager;
         this.element.classList.add("message-list");
+
+        this.element.addEventListener("message-delete-request", (ev) => {
+            if (!ev.detail || !ev.detail.messageId) return;
+
+            if (ev.detail.isGhostMessage) {
+                ev.stopPropagation();
+                this.removeMessage(ev.detail.messageId);
+            }
+        });
     }
 
     shouldMessageHaveDetails(message, lastMessage) {
@@ -601,6 +610,8 @@ export class MessageManager {
 
         this.messages.set(msg.id, message);
         this.element.appendChild(message.element);
+
+        return message;
     }
 
     removeMessage(id) {

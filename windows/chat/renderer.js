@@ -11,7 +11,6 @@ const usernameSidebar = document.getElementById("username-sidebar");
 const defaultAvatar = "../../assets/person.svg"; // Path to your default avatar
 let profilesMap = new Map(); // To store user profiles
 let uploadedImageUrl = null; // To store the URL of the image to be sent
-let replyingToMessage = null; // To store the message object being replied to
 
 const notifications = new NotificationManager(); // Toast notifications in the top right
 const users = new UserManager();
@@ -22,41 +21,8 @@ const input = new InputManager({
     channelManager: channels,
     userManager: users,
     messageManager: messages,
+    notifications,
 });
-
-// Function to update the reply preview bar
-// TODO: InputManager class to handle these sorts of things
-function updateReplyPreviewBar() {
-    const replyPreviewBar = document.getElementById("reply-preview-bar");
-    const chatInputArea = document.querySelector(".chat-input-area");
-
-    if (!replyPreviewBar || !chatInputArea) return;
-
-    if (replyingToMessage) {
-        const message = messages.getMessage(replyingToMessage);
-        let contentSnippet = message.content.type === "image" ? "Image" : message.content.text;
-        contentSnippet = contentSnippet.substring(0, 100) + (contentSnippet.length > 100 ? "..." : "");
-
-        replyPreviewBar.innerHTML = `
-            <div class="reply-preview-content">
-                <span class="reply-preview-label">Replying to ${message.author.name}:</span>
-                <span class="reply-preview-snippet">${contentSnippet}</span>
-            </div>
-            <button class="cancel-reply-button" id="cancel-reply-btn" aria-label="Cancel reply">&times;</button>
-        `;
-        replyPreviewBar.style.display = "flex";
-        chatInputArea.style.paddingTop = "5px"; // Adjust padding to make space if needed
-
-        document.getElementById("cancel-reply-btn").addEventListener("click", () => {
-            replyingToMessage = null;
-            updateReplyPreviewBar();
-        });
-    } else {
-        replyPreviewBar.innerHTML = "";
-        replyPreviewBar.style.display = "none";
-        chatInputArea.style.paddingTop = "10px"; // Reset padding
-    }
-}
 
 async function loadAllProfiles() {
     try {
@@ -173,7 +139,7 @@ async function uploadImageFile(file) {
 
 function showImagePreview(imageUrl) {
     const previewArea = document.getElementById("image-preview-area");
-    const previewImg = document.getElementById("image-preview-img");
+    const previewImg = document.querySelector(".image-preview-img");
     const messageInput = document.querySelector(".message-input");
 
     uploadedImageUrl = imageUrl;
@@ -192,7 +158,7 @@ function hideImagePreview() {
     const previewArea = document.getElementById("image-preview-area");
     const imageUploadInput = document.getElementById("image-upload-input");
     const messageInput = document.querySelector(".message-input");
-    const previewImg = document.getElementById("image-preview-img");
+    const previewImg = document.querySelector(".image-preview-img");
 
     uploadedImageUrl = null;
     previewArea.style.display = "none";
@@ -286,6 +252,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Set up input manager
     document.querySelector(".message-input").replaceWith(input.chatBarElement);
     document.querySelector("#reply-preview-bar").replaceWith(input.replyBarElement);
+    document.querySelector("#image-preview-area").replaceWith(input.attachmentBarElement);
 
     // Set up message manager
     document.querySelector(".message-list").replaceWith(messages.element);
@@ -298,16 +265,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!ev.detail || !ev.detail.imageUrl) return;
         openImageModal(ev.detail.imageUrl);
     });
-
-    // messages.onEvent("message-reply-request", (ev) => {
-    //     if (!ev.detail || !ev.detail.messageId) return;
-    //     replyingToMessage = ev.detail.messageId;
-    //     updateReplyPreviewBar();
-
-    //     /** @type {HTMLInputElement} */
-    //     const chatInput = document.querySelector(".message-input");
-    //     chatInput.focus();
-    // });
 
     messages.onEvent("message-delete-request", async (ev) => {
         if (!ev.detail || !ev.detail.messageId) return;
@@ -560,48 +517,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Listen for paste events for image uploading
-    document.addEventListener("paste", async (event) => {
-        if (uploadedImageUrl) {
-            // If an image is already in preview, don't try to paste another one on top.
-            // The paste event might be on the messageInput, which is fine for text.
-            if (event.target === messageInput) return;
-        }
+    // document.addEventListener("paste", async (event) => {
+    //     if (uploadedImageUrl) {
+    //         // If an image is already in preview, don't try to paste another one on top.
+    //         // The paste event might be on the messageInput, which is fine for text.
+    //         if (event.target === messageInput) return;
+    //     }
 
-        const items = (event.clipboardData || event.originalEvent.clipboardData)?.items;
-        if (!items) return;
+    //     const items = (event.clipboardData || event.originalEvent.clipboardData)?.items;
+    //     if (!items) return;
 
-        let imageFile = null;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf("image") !== -1) {
-                imageFile = items[i].getAsFile();
-                break;
-            }
-        }
+    //     let imageFile = null;
+    //     for (let i = 0; i < items.length; i++) {
+    //         if (items[i].type.indexOf("image") !== -1) {
+    //             imageFile = items[i].getAsFile();
+    //             break;
+    //         }
+    //     }
 
-        if (imageFile) {
-            event.preventDefault(); // Prevent default paste action if we're handling an image
-            console.log(`Pasted image: ${imageFile.name}, type: ${imageFile.type}, size: ${imageFile.size}`);
+    //     if (imageFile) {
+    //         event.preventDefault(); // Prevent default paste action if we're handling an image
+    //         console.log(`Pasted image: ${imageFile.name}, type: ${imageFile.type}, size: ${imageFile.size}`);
 
-            // Show visual feedback (optional, similar to file input)
-            const uploadButton = document.querySelector(".upload-button");
-            if (uploadButton) uploadButton.classList.add("uploading");
+    //         // Show visual feedback (optional, similar to file input)
+    //         const uploadButton = document.querySelector(".upload-button");
+    //         if (uploadButton) uploadButton.classList.add("uploading");
 
-            const result = await uploadImageFile(imageFile);
+    //         const result = await uploadImageFile(imageFile);
 
-            if (uploadButton) uploadButton.classList.remove("uploading");
+    //         if (uploadButton) uploadButton.classList.remove("uploading");
 
-            if (result.error) {
-                console.error("Pasted image upload failed:", result.error);
-                alert(`Pasted image upload failed: ${JSON.stringify(result.error)}`);
-            } else {
-                console.log("Pasted image upload successful, showing preview:", result.data);
-                if (result.data?.url) {
-                    showImagePreview(result.data.url);
-                } else {
-                    console.error("Pasted image upload result did not contain a valid image URL.", result.data);
-                    alert("Pasted image upload succeeded, but no image URL was returned.");
-                }
-            }
-        }
-    });
+    //         if (result.error) {
+    //             console.error("Pasted image upload failed:", result.error);
+    //             alert(`Pasted image upload failed: ${JSON.stringify(result.error)}`);
+    //         } else {
+    //             console.log("Pasted image upload successful, showing preview:", result.data);
+    //             if (result.data?.url) {
+    //                 showImagePreview(result.data.url);
+    //             } else {
+    //                 console.error("Pasted image upload result did not contain a valid image URL.", result.data);
+    //                 alert("Pasted image upload succeeded, but no image URL was returned.");
+    //             }
+    //         }
+    //     }
+    // });
 });
